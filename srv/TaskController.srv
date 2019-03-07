@@ -1,0 +1,6 @@
+string action
+int16 place
+float32[] lifter_position
+int16 time
+---
+string result

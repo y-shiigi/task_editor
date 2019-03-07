@@ -1,0 +1,27 @@
+#!/usr/bin/expect
+
+set ArgNumber [llength $argv]
+set RemoteHost [lindex $argv 0]
+set PW [lindex $argv 1]
+set TYPE [lindex $argv 2]
+set TARGET_FILE [lindex $argv 3]
+set TARGET_DIR [lindex $argv 4]
+
+set timeout 5
+
+if {${TYPE}=="send"} {
+  spawn env LANG=C scp ${TARGET_DIR}/${TARGET_FILE} ${RemoteHost}:${TARGET_DIR}
+} elseif {${TYPE}=="load"} {
+  spawn env LANG=C scp ${RemoteHost}:${TARGET_DIR}/${TARGET_FILE} ${TARGET_DIR}
+}
+
+expect {
+    -glob "(yes/no)?" {
+        send "yes\n"
+        exp_continue
+    }
+    -glob "password:" {
+        send -- "${PW}\n"
+        exp_continue
+    }
+}
