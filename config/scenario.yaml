@@ -1,21 +1,12 @@
 - motion: 
-    action: lifter
-    position: 0,-0.4,3000
-- motion: 
     action: move
     place: 0
 - motion: 
-    action: move
-    place: 1
+    action: lifter
+    position: 0,-0.4,3000
 - motion: 
     action: wait
-    time: 2000
-- motion: 
-    action: move
-    place: 2
-- motion: 
-    action: move
-    place: 3
+    time: -1
 - motion: 
     action: lifter
     position: 0,0,3000

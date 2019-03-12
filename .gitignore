@@ -11,5 +11,5 @@
 
 #TaskEditor
 TaskEditor-GUI.ini*
-#scenario*.yaml
-#waypoints*.yaml
+scenario*.yaml
+waypoints*.yaml

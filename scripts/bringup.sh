@@ -21,6 +21,9 @@ elif [ $3 = "scenario_start" ]; then
   scenario_name=$4
   gnome-terminal --tab -e 'bash -c "expect ssh.exp '${ip_address}' '${password}' \"export ROS_IP='${ip_address}'\" \"rosrun task_editor start.py '${scenario_name}';exit\" "'
 
+elif [ $3 = "scenario_restart" ]; then 
+  gnome-terminal --zoom=0.5 --tab -e 'bash -c "export ROS_MASTER_URI=http://'${ip_address}':11311;export ROS_IP=192.168.10.200;rosparam set /task_editor/wait_task False ;exit"'
+
 elif [ $3 = "rviz" ]; then 
   gnome-terminal --zoom=0.5 --tab -e 'bash -c "export ROS_MASTER_URI=http://'${ip_address}':11311;export ROS_IP=192.168.10.200;roslaunch task_editor view.launch;exit"'
 

@@ -116,8 +116,15 @@ class WAIT(State):
     self.time_ = int(_time)
 
   def execute(self, userdata):
-    print 'wait ' + str(self.time_) + 'msec'
-    rospy.sleep(self.time_ * 0.001)
+    if(self.time_ >= 0):
+      print 'wait ' + str(self.time_) + 'msec'
+      rospy.sleep(self.time_ * 0.001)
+    else :
+      print 'wait for /task_editor/wait_task is False'
+      rospy.set_param('/task_editor/wait_task',True)
+      while(rospy.get_param('/task_editor/wait_task') == True): pass
+
+    rospy.set_param('/task_editor/wait_task',False)
 
     return 'succeeded'
 
@@ -150,6 +157,8 @@ class Scenario:
     path = rospack.get_path('task_editor')
     self.scenario = yaml.load(file(path + "/config/" + file_name))
     self.motion_size = len(self.scenario)
+
+    rospy.set_param('/task_editor/wait_task',False)
 
   def read_action(self, _number):
     rev = dict(self.scenario[_number])
