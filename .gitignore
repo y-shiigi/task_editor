@@ -13,3 +13,5 @@
 TaskEditor-GUI.ini*
 scenario*.yaml
 waypoints*.yaml
+map.pgm
+map.yaml
