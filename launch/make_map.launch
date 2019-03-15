@@ -1,9 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <include file="$(find task_editor)/launch/wheel_bringup.launch">
-    <arg name="REAL_ROBOT" value="true"/>
-  </include>
-
   <include file="$(find aero_startup)/aero_move_base/launch/wheel_with_making_map.launch">
     <arg name="RUN_BRINGUP" default="false" />
   </include>
