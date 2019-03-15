@@ -1,14 +1,11 @@
-- motion: 
-    action: move
+- action: 
+    task: move
     place: 0
-- motion: 
-    action: lifter
-    position: 0,-0.4,3000
-- motion: 
-    action: wait
-    time: -1
-- motion: 
-    action: lifter
-    position: 0,0,3000
-- motion: 
-    action: end
+- action: 
+    task: move
+    place: 2
+- action: 
+    task: move
+    place: 1
+- action: 
+    task: end

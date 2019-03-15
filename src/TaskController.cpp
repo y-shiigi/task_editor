@@ -25,11 +25,11 @@ bool TaskController::taskControllerCallback(task_editor::TaskController::Request
 {
   ROS_INFO("call back start");
 
-  if(_req.action == "init"){
+  if(_req.task == "init"){
     if(initMotion() == true) _res.result = "succeeded";
     else _res.result = "aborted"; 
   }
-  else if(_req.action == "lifter"){
+  else if(_req.task == "lifter"){
     if(moveLifter(_req.lifter_position[0],_req.lifter_position[1],_req.lifter_position[2]) == true) _res.result = "succeeded";
     else _res.result = "aborted"; 
   }

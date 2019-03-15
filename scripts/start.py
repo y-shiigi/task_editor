@@ -77,10 +77,10 @@ class TaskAction:
     rospy.loginfo('waiting service')
     rospy.wait_for_service('task_controller')
 
-  def set_action(self,_action,_place,_lifter_position, _time):
+  def set_action(self,_task,_place,_lifter_position, _time):
     try:
         service = rospy.ServiceProxy('task_controller', TaskController)
-        response = service(_action,_place,_lifter_position, _time)
+        response = service(_task,_place,_lifter_position, _time)
         return response.result
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
@@ -156,25 +156,25 @@ class Scenario:
     rospack.list() 
     path = rospack.get_path('task_editor')
     self.scenario = yaml.load(file(path + "/config/" + file_name))
-    self.motion_size = len(self.scenario)
+    self.scenario_size = len(self.scenario)
 
     rospy.set_param('/task_editor/wait_task',False)
 
-  def read_action(self, _number):
+  def read_task(self, _number):
     rev = dict(self.scenario[_number])
-    return rev['motion']['action']
+    return rev['action']['task']
 
   def read_place(self, _number):
     rev = dict(self.scenario[_number])
-    return rev['motion']['place']
+    return rev['action']['place']
 
   def read_position(self, _number):
     rev = dict(self.scenario[_number])
-    return rev['motion']['position']
+    return rev['action']['position']
 
   def read_time(self, _number):
     rev = dict(self.scenario[_number])
-    return rev['motion']['time']
+    return rev['action']['time']
 
 
 #==================================
@@ -186,31 +186,31 @@ if __name__ == '__main__':
   ta = TaskAction()
   sn = Scenario()
 
-  motion_play = StateMachine(outcomes=['succeeded','aborted'])
-  with motion_play:
-#    StateMachine.add('INITIALIZE', initialize,transitions={'succeeded':'MOTION 0','aborted':'aborted'})
-    for i in range(sn.motion_size):
-      if sn.read_action(i) == 'init':
-       StateMachine.add('MOTION ' + str(i), INITIALIZE(), \
-          transitions={'succeeded':'MOTION '+ str(i+1),'aborted':'MOTION '+str(i+1)})
-      elif sn.read_action(i) == 'move':
-       StateMachine.add('MOTION ' + str(i), GO_TO_PLACE(sn.read_place(i)), \
-          transitions={'succeeded':'MOTION '+ str(i+1),'aborted':'MOTION '+str(i+1)})
-      elif sn.read_action(i) == 'lifter':
-       StateMachine.add('MOTION ' + str(i), LIFTER(sn.read_position(i)), \
-          transitions={'succeeded':'MOTION '+ str(i+1),'aborted':'MOTION '+str(i+1)})
-      elif sn.read_action(i) == 'wait':
-       StateMachine.add('MOTION ' + str(i), WAIT(sn.read_time(i)), \
-          transitions={'succeeded':'MOTION '+ str(i+1),'aborted':'MOTION '+str(i+1)})
-      elif sn.read_action(i) == 'end':
-       StateMachine.add('MOTION ' + str(i), FINISH(), \
+  scenario_play = StateMachine(outcomes=['succeeded','aborted'])
+  with scenario_play:
+
+    for i in range(sn.scenario_size):
+      if sn.read_task(i) == 'init':
+       StateMachine.add('ACTION ' + str(i), INITIALIZE(), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'move':
+       StateMachine.add('ACTION ' + str(i), GO_TO_PLACE(sn.read_place(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'lifter':
+       StateMachine.add('ACTION ' + str(i), LIFTER(sn.read_position(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'wait':
+       StateMachine.add('ACTION ' + str(i), WAIT(sn.read_time(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'end':
+       StateMachine.add('ACTION ' + str(i), FINISH(), \
           transitions={'succeeded':'succeeded','aborted':'aborted'})
       else :
-       StateMachine.add('MOTION ' + str(i), NONE(), \
-          transitions={'succeeded':'MOTION '+ str(i+1),'aborted':'MOTION '+str(i+1)})
+       StateMachine.add('ACTION ' + str(i), NONE(), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
         
-  sis = smach_ros.IntrospectionServer('server_name',motion_play,'/SEED-Noid Motion Play')
+  sis = smach_ros.IntrospectionServer('server_name',scenario_play,'/SEED-Noid Scenario Play')
   sis.start()
-  motion_play.execute()
+  scenario_play.execute()
   sis.stop()
 

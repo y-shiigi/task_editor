@@ -4,9 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /TF1/Tree1
+        - /Battery1
       Splitter Ratio: 0.607558012
-    Tree Height: 778
+    Tree Height: 750
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -52,7 +52,7 @@ Visualization Manager:
       Collision Enabled: false
       Enabled: true
       Links:
-        All Links Enabled: true
+        All Links Enabled: false
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
@@ -65,7 +65,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         camera_frame:
           Alpha: 1
           Show Axes: false
@@ -78,12 +78,12 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         head_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         hip_center:
           Alpha: 1
           Show Axes: false
@@ -92,7 +92,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_eef_grasp_link:
           Alpha: 1
           Show Axes: false
@@ -105,17 +105,17 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_forearm_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_hand_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_index_tip_link:
           Alpha: 1
           Show Axes: false
@@ -124,32 +124,32 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_indexend_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_indexmid_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_shoulder_center:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_shoulder_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_thumb_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_thumb_tip_link:
           Alpha: 1
           Show Axes: false
@@ -158,7 +158,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_wrist_center:
           Alpha: 1
           Show Axes: false
@@ -202,12 +202,12 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         neck_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_eef_grasp_link:
           Alpha: 1
           Show Axes: false
@@ -220,17 +220,17 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_forearm_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_hand_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_index_tip_link:
           Alpha: 1
           Show Axes: false
@@ -239,32 +239,32 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_indexend_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_indexmid_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_shoulder_center:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_shoulder_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_thumb_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_thumb_tip_link:
           Alpha: 1
           Show Axes: false
@@ -273,7 +273,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_wrist_center:
           Alpha: 1
           Show Axes: false
@@ -282,7 +282,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         wheel_base_link:
           Alpha: 1
           Show Axes: false
@@ -326,11 +326,11 @@ Visualization Manager:
       Visual Enabled: true
     - Class: rviz/TF
       Enabled: true
-      Frame Timeout: 1
+      Frame Timeout: 3
       Frames:
         All Enabled: false
         base_link:
-          Value: false
+          Value: true
         body_link:
           Value: false
         camera_frame:
@@ -574,6 +574,25 @@ Visualization Manager:
       Unreliable: false
       Use Timestamp: false
       Value: true
+    - Class: jsk_rviz_plugin/PieChart
+      Enabled: true
+      Name: Battery
+      Topic: /aero_ros_controller/voltage
+      Value: true
+      auto color change: false
+      background color: 0; 0; 0
+      backround alpha: 0
+      foreground alpha: 0.699999988
+      foreground alpha 2: 0.400000006
+      foreground color: 25; 255; 240
+      left: 0
+      max color: 255; 0; 0
+      max value: 26
+      min value: 22.2000008
+      show caption: true
+      size: 128
+      text size: 20
+      top: 0
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
@@ -599,33 +618,33 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 11.66998
+      Distance: 7.08790874
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.245750234
-        Y: -0.202674001
-        Z: 0.116102874
+        X: 0.652113318
+        Y: 0.403454244
+        Z: 0.044658877
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.589796901
+      Pitch: 0.454796493
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.2809093
+      Yaw: 3.45590639
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1056
+  Height: 1028
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000016a00000399fc020000000efb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000000c00430061006d0065007200610000000028000002370000000000000000fb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000100044006900730070006c006100790073010000002800000399000000d700fffffffb0000001a0057006100790070006f0069006e00740073004500640069007400000002e8000000bd0000000000000000fb0000000a0049006d00610067006500000002ff000000c20000000000000000fb0000000a0049006d00610067006501000001d4000000b50000000000000000fb0000000c00430061006d0065007200610000000273000000160000000000000000fb0000000c00430061006d006500720061000000027300000016000000000000000000000001000002f6000003befc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000002800000399000000ad00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073f00000234fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007470000003bfc0100000002fb0000000800540069006d00650100000000000007470000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000005d70000039900000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000016a0000037dfc020000000efb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000000c00430061006d0065007200610000000028000002370000000000000000fb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000100044006900730070006c00610079007301000000280000037d000000d700fffffffb0000001a0057006100790070006f0069006e00740073004500640069007400000002e8000000bd0000000000000000fb0000000a0049006d00610067006500000002ff000000c20000000000000000fb0000000a0049006d00610067006501000001d4000000b50000000000000000fb0000000c00430061006d0065007200610000000273000000160000000000000000fb0000000c00430061006d006500720061000000027300000016000000000000000000000001000002f6000003befc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000002800000399000000ad00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073f00000234fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000003a40000003bfc0100000002fb0000000800540069006d00650100000000000003a40000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000002340000037d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -634,6 +653,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1863
+  Width: 932
   X: 57
   Y: 24

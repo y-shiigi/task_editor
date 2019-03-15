@@ -1,4 +1,4 @@
-string action
+string task
 int16 place
 float32[] lifter_position
 int16 time
