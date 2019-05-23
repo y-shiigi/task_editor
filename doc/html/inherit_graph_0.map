@@ -1,8 +1,0 @@
-<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node2" href="$classstart_1_1FINISH.html" title="”終了”ステート " alt="" coords="132,5,229,32"/>
-<area shape="rect" id="node3" href="$classstart_1_1GO__TO__PLACE.html" title="”ムーバー移動”ステート " alt="" coords="107,56,255,83"/>
-<area shape="rect" id="node4" href="$classstart_1_1INITIALIZE.html" title="”初期化”ステート " alt="" coords="121,107,240,133"/>
-<area shape="rect" id="node5" href="$classstart_1_1LIFTER.html" title="”リフター移動”ステート " alt="" coords="131,157,230,184"/>
-<area shape="rect" id="node6" href="$classstart_1_1NONE.html" title="”何もしない”ステート 実装されていないタスクが実行された場合のみ使用 " alt="" coords="135,208,226,235"/>
-<area shape="rect" id="node7" href="$classstart_1_1WAIT.html" title="”待ち”ステート " alt="" coords="137,259,224,285"/>
-</map>

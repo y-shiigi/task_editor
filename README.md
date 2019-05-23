@@ -67,10 +67,10 @@ SGSの構成としては下図の通りである。
 シナリオ作成〜実行までの一連の流れは下記のとおりである。  
 
 1. GUIを用いて作成されたシナリオは"保存ボタン"を押すと/configに.yamlファイルとして作成され、ロボット側のPCに転送される  
-2. GUIにて"シナリオ実行"ボタンを押すとロボット側のPCにて start.py が実行される。<br>  
+2. GUIにて"シナリオ実行"ボタンを押すとロボット側のPCにて start.py が実行される。  
 start.py は主にステートマシンの作成と実行を担っている。  
 ステートマシンとしては[smach](http://wiki.ros.org/smach)を用いており、詳細は[O'REILYの書籍](https://www.oreilly.co.jp/books/9784873118093/)が参考となる。  
-3. ステートがムーバー移動の場合は、[アクション](http://wiki.ros.org/actionlib)という通信の仕組みで/move_baseとやり取りを行う。<br>  
+3. ステートがムーバー移動の場合は、[アクション](http://wiki.ros.org/actionlib)という通信の仕組みで/move_baseとやり取りを行う。  
 ステートがリフター移動の場合は、[サービス](http://wiki.ros.org/Services)という通信の仕組みで/task_controllerとやり取りを行う。
 詳細は[工学社の書籍](https://www.kohgakusha.co.jp/support/ros_robot/index.html)が参考となる。
 
