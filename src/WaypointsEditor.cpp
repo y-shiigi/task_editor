@@ -15,28 +15,40 @@
 #include <ros/package.h>
 
 //////////////////////////////
+/** 
+* @brief waypointsの作成/読み出し用。
+* @details DUALSHOCKのボタンに応じて関数が呼び出される。
+*/
 class Waypoint_Edit{
 public:
+  /**
+  * @brief コンストラクタ
+  * @param _nh ROSのノードハンドル
+  */
   Waypoint_Edit(ros::NodeHandle _nh);
+
+  /**
+  * @brief DUALSHOCKデータをサブスクライブした際のコールバック定義
+  * @param _ps3 DUALSHOCKのデータ
+  */
   void getPS3(const sensor_msgs::JoyPtr& _ps3);
 
 private:
 //to get tf--
-  ros::Subscriber wheel_pos_sub_;
-  tf::TransformListener listener_;
+  tf::TransformListener listener_; ///< @brief TFの取得 @sa http://wiki.ros.org/tf
 
 //to get ps3 data--
-  ros::Subscriber ps3_sub_;
-  int32_t ps3_start_;
-  int32_t ps3_pre_start_;
+  ros::Subscriber ps3_sub_; ///< @brief DUALSHOKデータ取得用サブスクライバーの定義
+  int32_t ps3_start_; ///< @brief DUALSHOCKのスタートボタンデータの格納
+  int32_t ps3_pre_start_; ///< @brief DUALSHOCKの過去のスタートボタンデータの格納
 
-  int32_t ps3_select_;
+  int32_t ps3_select_;  ///< @brief DUALSHOCKのセレクトボタンデータの格納
 //----
 
-  ros::NodeHandle nh_;
-  uint16_t counter_;
+  ros::NodeHandle nh_;  ///< @brief ROSのノードハンドル
+  uint16_t counter_;  ///< @brief waypoints番号のカウント
 
-  std::string pkg_path_;
+  std::string pkg_path_;  ///< @brief task_editorの絶対位置パス格納
 };
 
 Waypoint_Edit::Waypoint_Edit(ros::NodeHandle _nh)
@@ -65,9 +77,7 @@ void Waypoint_Edit::getPS3(const sensor_msgs::JoyPtr& _ps3){
 
   move_base_msgs::MoveBaseGoal goal;
 
-
-//  std::cout << ps3_start_ << "\t" << ps3_ps_ << std::endl;
-
+  //スタートボタンが押されたら現在値の座標（TF）をwaypointsとして登録する
   if (ps3_start_ == 0 && ps3_pre_start_ == 1){
     try{
       listener_.lookupTransform("/map", "/base_link",ros::Time(0), transform_now);
@@ -95,6 +105,7 @@ void Waypoint_Edit::getPS3(const sensor_msgs::JoyPtr& _ps3){
       ros::Duration(1.0).sleep();
     }
   }
+  //セレクトボタンが押されたら登録されているwaypointsをTFとして発行する
   else if (ps3_select_ == 1){  //readm yaml file
     YAML::Node config = YAML::LoadFile(pkg_path_ + "/config/waypoints.yaml");
     const YAML::Node &wp_node_tmp = config;
@@ -118,6 +129,7 @@ void Waypoint_Edit::getPS3(const sensor_msgs::JoyPtr& _ps3){
       }
     }
   }
+  //L1,L2,R1,R2ボタンが同時押しされたら、waypointsをyamlファイルごと削除する
   else if (_ps3->buttons[8] == 1 && _ps3->buttons[9] == 1 && _ps3->buttons[10] == 1 && _ps3->buttons[11] == 1){
     //L1,L2,R1,R2 == 1
     std::ofstream ofs(pkg_path_ + "/config/waypoints.yaml", std::ios_base::trunc);

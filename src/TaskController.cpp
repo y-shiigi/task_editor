@@ -25,11 +25,11 @@ bool TaskController::taskControllerCallback(task_editor::TaskController::Request
 {
   ROS_INFO("call back start");
 
-  if(_req.task == "init"){
+  if(_req.task == "init"){  //サービスのタスク名が"init"の時
     if(initMotion() == true) _res.result = "succeeded";
     else _res.result = "aborted"; 
   }
-  else if(_req.task == "lifter"){
+  else if(_req.task == "lifter"){ //サービスのタスク名が"lifter"の時
     if(moveLifter(_req.lifter_position[0],_req.lifter_position[1],_req.lifter_position[2]) == true) _res.result = "succeeded";
     else _res.result = "aborted"; 
   }

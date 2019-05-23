@@ -1,0 +1,23 @@
+actions: []
+authors: ''
+brief: ''
+bugtracker: ''
+depends:
+- message_runtime
+- catkin
+- roscpp
+- roslib
+- std_msgs
+- rospy
+- yaml-cpp
+- message_generation
+- aero_std
+description: The task_editor package
+license: BSD
+maintainers: Yasuto Shiigi <y.shiigi@thk.co.jp>
+msgs: []
+package_type: package
+repo_url: ''
+srvs:
+- TaskController
+url: ''

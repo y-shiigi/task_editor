@@ -1,6 +1,6 @@
-string task
-int16 place
-float32[] lifter_position
-int16 time
+string task                 # task name for scenario
+int16 place                 # place(waypoints) name for SLAM
+float32[] lifter_position   # lifter position(x,z)[m] and movement time[msec]
+int16 time                  # wait time[msec]
 ---
-string result
+string result               # callback response : succeeded, aborted
