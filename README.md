@@ -79,5 +79,14 @@ start.py は主にステートマシンの作成と実行を担っている。
 
 <img src="https://user-images.githubusercontent.com/12426780/58219653-a9b67300-7d46-11e9-9c72-8a54869f62f5.png" width=80%>
 
+# クラスドキュメントの作成方法
 
+クラスドキュメントは[rosdoc_liteパッケージ](http://wiki.ros.org/rosdoc_lite)を用いて作成されている。
+ローカルPCにて最新版に更新する場合は下記手順を実行のこと。
+```
+sudo apt-get install ros-kinetic-rosdoc-lite 
+roscd task_editor
+rosdoc_lite .
+```
+/task_editor直下に/doc/htmlが作成されるので、Firefoxなどで``index.html``を開けば良い。
 
