@@ -44,4 +44,6 @@
 
   </node>
 
+  <include file="$(find aero_teleop)/launch/cmd_vel_mux.launch"/>
+
 </launch>
