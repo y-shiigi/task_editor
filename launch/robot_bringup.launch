@@ -4,6 +4,8 @@
 
   <include file="$(find seed_r7_bringup)/launch/seed_r7_bringup.launch"/>
 
+  <include file="$(find seed_r7_typef_moveit_config)/launch/move_group.launch"/>
+
   <include file="$(find task_editor)/launch/wheel_bringup.launch">
     <arg name="REAL_ROBOT" value="$(arg REAL_ROBOT)"/>
   </include>
