@@ -1,9 +1,11 @@
 <?xml version="1.0"?>
 <launch>
-  <include file="$(find aero_startup)/aero_bringup.launch"/>
+  <arg name="REAL_ROBOT" default="true" />
+
+  <include file="$(find seed_r7_bringup)/launch/seed_r7_bringup.launch"/>
 
   <include file="$(find task_editor)/launch/wheel_bringup.launch">
-    <arg name="REAL_ROBOT" value="true"/>
+    <arg name="REAL_ROBOT" value="$(arg REAL_ROBOT)"/>
   </include>
 
 </launch>

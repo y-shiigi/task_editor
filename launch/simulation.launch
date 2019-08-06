@@ -4,12 +4,11 @@
     <arg name="REAL_ROBOT" value="false"/>
   </include>
 
-  <include file="$(find aero_startup)/aero_move_base/launch/wheel_with_dummy.launch">
+  <include file="$(find seed_r7_navigation)/launch/wheel_with_dummy.launch">
     <arg name="map_file" value="$(find task_editor)/config/maps/map.yaml"/>
     <arg name="map_localization_file" value="$(find task_editor)/config/maps/map.yaml"/>
   </include>
 
-  <node name="task_controller" pkg="task_editor" type="task_controller" output="screen" />
   <node name="waypoints_editor" pkg="task_editor" type="waypoints_editor" />
 
 </launch>

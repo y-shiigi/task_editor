@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
 import rospy
 ##-- for smach
 from smach import State,StateMachine
@@ -14,9 +15,10 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import yaml
 ##-- for find pkg
 import rospkg
-##-- for task
-from task_editor.srv import *
-import sys
+##-- for moveit
+import moveit_commander
+import moveit_msgs.msg
+from geometry_msgs.msg import Pose, PoseStamped
 
 ###########################################
 ## @brief ナビゲーション関連のクラス
@@ -91,6 +93,67 @@ class GO_TO_PLACE(State):
 #---------------------------------
 
 ###########################################
+## @brief Moveit Commander用のクラス
+# moveit_commanderのライブラリを読みだす
+class MoveitCommand:
+  ## @brief コンストラクタ。モデルの読み出し、グループの定義
+  def __init__(self):
+    self.robot = moveit_commander.RobotCommander()
+    self.scene = moveit_commander.PlanningSceneInterface()
+    self.dis_body_lifter = 1.065 - 0.92
+
+  ## @brief lifterのIK算出と動作
+  # @param _x リフター上部のx座標[m]
+  # @param _z リフター上部のz座標[m]
+  # @param _vel 速度のスケーリング : 0〜１
+  # @return IKが算出できて、移動が完了したか否か（succeeded or aborted）
+  def set_lifter_position(self, _x, _z, _vel=1.0):
+    self.group = moveit_commander.MoveGroupCommander("torso")
+    self.group.set_pose_reference_frame("base_link")
+
+    current_pose = PoseStamped()
+    current_pose = self.group.get_current_pose()
+    target_pose = Pose()
+    target_pose = current_pose.pose
+
+    target_pose.position.x = _x
+    target_pose.position.z = _z + self.dis_body_lifter
+
+    self.group.set_pose_target(target_pose)
+    self.group.set_max_velocity_scaling_factor(_vel)
+    plan = self.group.plan()
+
+    if(len(plan.joint_trajectory.points)==0):
+      rospy.logwarn("can't be solved lifter ik")
+      self.group.clear_pose_targets()
+      return 'aborted'
+    else: 
+      self.group.execute(plan)
+      return 'succeeded'
+
+#---------------------------------
+## @brief ”リフター移動”ステート 
+# @param State smachのステートクラスを継承
+class LIFTER(State):
+  ## @brief コンストラクタ。ステートの振る舞い(succeeded or aborted)定義
+  # @param _position リフターの絶対位置(x,y)[m]と速度スケーリング(0~1)
+  def __init__(self,_position):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    position_string = _position.split(',')
+    ## @brief リフターの絶対位置(x,y)[m]と速度スケーリング(0~1)
+    self.position_ = [float(s) for s in position_string]
+
+  ## @brief 遷移実行
+  # @param userdata 前のステートから引き継がれた変数。今回は使用しない
+  # @return サービスの呼び出し結果（succeeded or aborted）
+  def execute(self, userdata):
+    print 'Move Lifter at (' + str(self.position_[0]) +',' + \
+      str(self.position_[1]) +') in scale velocity ' + str(self.position_[2])
+    if(mc.set_lifter_position(self.position_[0],self.position_[1],self.position_[2]) == 'succeeded'):return 'succeeded'
+    else: return 'aborted'
+
+'''
+###########################################
 ## @brief ナビゲーション以外のタスク実行クラス
 # task_controllerサーバー( TaskController.hh )とサービスコールで通信を行う
 class TaskAction:
@@ -152,6 +215,7 @@ class LIFTER(State):
     else: return 'aborted'
 
 #---------------------------------
+'''
 
 ##########################################
 ## @brief ”待ち”ステート 
@@ -263,8 +327,9 @@ class Scenario:
 if __name__ == '__main__':
   rospy.init_node('aero_scenario_node')
 
+  mc = MoveitCommand()
   na = NaviAction()
-  ta = TaskAction()
+  #ta = TaskAction()
   sn = Scenario()
 
   # scneario_playというステートマシンのインスタンスを作成
@@ -293,7 +358,7 @@ if __name__ == '__main__':
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
 
   ## @brief デバッグ出力(smach_viewerで見れるようにする) @sa http://wiki.ros.org/smach_viewer
-  sis = smach_ros.IntrospectionServer('server_name',scenario_play,'/SEED-Noid Scenario Play')
+  sis = smach_ros.IntrospectionServer('server_name',scenario_play,'/SEED-Noid-Mover Scenario Play')
   sis.start()
   # ステートマシンの実行
   scenario_play.execute()

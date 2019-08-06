@@ -15,8 +15,8 @@ SGSの構成としては下図の通りである。
 なお、ロボット自身および周囲の環境情報は常時、遠隔操作PC/クラウド側へ送られ、データ可視化ツール"Rviz"に表示される。  
 
 ロボット側にはソフトウェア群として[ROS](http://www.ros.org/about-ros/)のパッケージである
-``aero-ros-pkg``と``task_editor``が入っている。  
-``aero-ros-pkg``については[Github](https://github.com/seed-solutions/aero-ros-pkg)を参照することとし、
+``seed_r7_ros_pkg``、``seed_smartactuator_sdk``と``task_editor``が入っている。  
+``seed_r7_ros_pkg``については[Github](https://github.com/seed-solutions/seed_r7_ros_pkg)を参照することとし、
 次節以降では``task_editor``について記述する。
 
 
@@ -35,6 +35,7 @@ SGSの構成としては下図の通りである。
 │ ├── /maps
 │ │ ├── map.pgm               //地図データの画像ファイル
 │ │ └── map.yaml              //地図データの設定ファイル
+│ ├── ps3-holonomic.config.yaml//DUALSHOCK操作時の設定ファイル
 │ ├── scenario.yaml            //シナリオファイル
 │ └── waypoints.yaml           //waypointsファイル
 ├── /launch                     //複数のノードを起動するためのlaunchファイル 
@@ -52,11 +53,7 @@ SGSの構成としては下図の通りである。
 │ ├── ssh.exp                  //SSH接続設定
 │ └── start.py                 <span style="color: red; ">//シナリオ実行</span>
 ├── /src                        //ソースファイル
-│ ├── TaskController.cpp       <span style="color: red; ">//task_controllerサーバー定義、タスク詳細</span>
-│ ├── TaskController.hh
 │ └── WaypointsEditor.cpp      //waypointsの設定/保存
-├── /srv                        //サービスファイル
-│ └── TaskController.srv       <span style="color: red; ">//task_controllerサービスファイル定義</span>
 └── view.rviz                   //rvizの設定ファイル
 </pre>
 </div>

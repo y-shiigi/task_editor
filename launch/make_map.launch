@@ -1,9 +1,8 @@
 <?xml version="1.0"?>
 <launch>
-  <include file="$(find aero_startup)/aero_move_base/launch/wheel_with_making_map.launch">
+  <include file="$(find seed_r7_navigation)/launch/wheel_with_making_map.launch">
     <arg name="RUN_BRINGUP" default="false" />
   </include>
 
-  <node name="task_controller" pkg="task_editor" type="task_controller" output="screen" />
   <node name="waypoints_editor" pkg="task_editor" type="waypoints_editor" />
 </launch>
