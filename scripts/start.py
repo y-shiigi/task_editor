@@ -117,6 +117,7 @@ class MoveitCommand:
     target_pose = current_pose.pose
 
     target_pose.position.x = _x
+    target_pose.position.y = 0
     target_pose.position.z = _z + self.dis_body_lifter
 
     self.group.set_pose_target(target_pose)
