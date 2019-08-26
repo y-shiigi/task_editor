@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="robot_pose_publisher" type="robot_pose_publisher" name="robot_pose_publisher"> </node>
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
+    <arg name="port" value="9090"/>
+  </include>
+  <include file="$(find roswww)/launch/roswww.launch" />
+</launch>
