@@ -246,6 +246,31 @@ class WAIT(State):
     return 'succeeded'
 
 ##########################################
+## @brief ”ループ”ステート 
+# @param State smachのステートクラスを継承
+class LOOP(State):
+  ## @brief コンストラクタ。ステートの振る舞い(succeeded or aborted)定義
+  # @param _count ループ回数。負の値だと、無限ループ
+  def __init__(self,_count):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    ## @brief ループ回数。負の値だと、無限ループ
+    self.count_ = int(_count)
+
+  ## @brief 遷移実行
+  # @param userdata 前のステートから引き継がれた変数。今回は使用しない
+  # @return ループがある場合はsucceeded、無い場合はaborted
+  def execute(self, userdata):
+    self.count_ -= 1
+    if(self.count_ > 0):
+      print 'count ' + str(self.count_) + ' times'
+      return 'succeeded'
+    elif(self.count_ < 0):
+      print 'infinity loop'
+      return 'succeeded'
+    else:
+      return 'aborted'
+
+##########################################
 ## @brief ”終了”ステート 
 # @param State smachのステートクラスを継承
 class FINISH(State):
@@ -321,6 +346,24 @@ class Scenario:
     rev = dict(self.scenario[_number])
     return rev['action']['time']
 
+  ## @brief ループ先の読込
+  # @param _number scenario.yamlのデータ行
+  # @return ジャンプ先
+  def read_jump(self, _number):
+    rev = dict(self.scenario[_number])
+    jump_number = int(rev['action']['jump'].split(',')[0])
+    if jump_number > 0:
+      jump_number = jump_number - 1
+    else :
+      jump_number = 0
+    return jump_number
+
+  ## @brief ループ回数
+  # @param _number scenario.yamlのデータ行
+  # @return ループ回数
+  def read_count(self, _number):
+    rev = dict(self.scenario[_number])
+    return rev['action']['jump'].split(',')[1]
 
 #==================================
 #==================================
@@ -350,6 +393,9 @@ if __name__ == '__main__':
       elif sn.read_task(i) == 'wait':
        StateMachine.add('ACTION ' + str(i), WAIT(sn.read_time(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'loop':
+       StateMachine.add('ACTION ' + str(i), LOOP(sn.read_count(i)), \
+          transitions={'succeeded':'ACTION '+ str(sn.read_jump(i)),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'end':
        StateMachine.add('ACTION ' + str(i), FINISH(), \
           transitions={'succeeded':'succeeded','aborted':'aborted'})
