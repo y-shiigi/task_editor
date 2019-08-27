@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 import sys
+import time
 import rospy
 ##-- for smach
 from smach import State,StateMachine
@@ -13,6 +13,8 @@ from actionlib_msgs.msg import *
 from geometry_msgs.msg import *
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import yaml
+import tf
+import math
 ##-- for find pkg
 import rospkg
 ##-- for moveit
@@ -68,6 +70,50 @@ class NaviAction:
       rospy.loginfo("Failed")
       return 'aborted'
 
+  ## @brief 経由地点の設定と移動の開始
+  # @param _number waypointsの番号(0以上の数値）
+  # @return ゴール付近に到着したか否か（succeeded or aborted）
+  def set_via_point(self,_number):
+    rospy.on_shutdown(self.shutdown)
+
+    rev = dict(self.config[_number]) #List to Dictionary
+
+    self.goal.target_pose.header.frame_id = 'map'
+    self.goal.target_pose.header.stamp = rospy.Time.now()
+    self.goal.target_pose.pose.position.x = rev['pose']['position']['x']
+    self.goal.target_pose.pose.position.y = rev['pose']['position']['y']
+    self.goal.target_pose.pose.position.z = rev['pose']['position']['z']
+    self.goal.target_pose.pose.orientation.x = rev['pose']['orientation']['x']
+    self.goal.target_pose.pose.orientation.y = rev['pose']['orientation']['y']
+    self.goal.target_pose.pose.orientation.z = rev['pose']['orientation']['z']
+    self.goal.target_pose.pose.orientation.w = rev['pose']['orientation']['w']
+
+    rospy.loginfo('Sending goal')
+    self.ac.send_goal(self.goal)
+    listener = tf.TransformListener()
+
+    timeout = time.time() + 10; #[sec]
+
+    while True:
+      try:
+        (position, quaternion) = listener.lookupTransform('map', 'base_link', rospy.Time(0) )
+      except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+        continue
+      
+      #ゴールから0.5[m]以内なら、succeededを返す
+      if(math.sqrt((position[0]-self.goal.target_pose.pose.position.x)**2 
+        + (position[1]-self.goal.target_pose.pose.position.y)**2 ) <= 0.5):
+        
+        rospy.loginfo("Succeed")
+        return 'succeeded'
+
+      elif (time.time() > timeout):
+        rospy.loginfo("Timeout")
+        return 'aborted' 
+
+      else:
+        rospy.sleep(0.5)
+
   ## @brief move_baseの終了
   def shutdown(self):
     rospy.loginfo("The robot was terminated")
@@ -90,6 +136,24 @@ class GO_TO_PLACE(State):
     print 'Going to Place'+str(self.place_)
     if(na.set_goal(self.place_) == 'succeeded'):return 'succeeded'
     else: return 'aborted' 
+
+## @brief ”経由点移動”ステート
+# @param State smachのステートクラスを継承
+class GO_TO_VIA_POINT(State):
+  ## @brief コンストラクタ。ステートの振る舞い(succeeded or aborted)定義
+  # @param _place  waypointsの番号
+  def __init__(self,_place):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    ## @brief waypointsの番号
+    self.place_ = _place
+
+  ## @brief 遷移実行
+  # @param userdata 前のステートから引き継がれた変数。今回は使用しない
+  # @return ゴールに付近に到着したか否か（succeeded or aborted）
+  def execute(self, userdata):
+    print 'Going to Place'+str(self.place_)
+    if(na.set_via_point(self.place_) == 'succeeded'):return 'succeeded'
+    else: return 'aborted' 
 #---------------------------------
 
 ###########################################
@@ -102,6 +166,8 @@ class MoveitCommand:
     self.scene = moveit_commander.PlanningSceneInterface()
     self.dis_body_lifter = 1.065 - 0.92
 
+
+
   ## @brief lifterのIK算出と動作
   # @param _x リフター上部のx座標[m]
   # @param _z リフター上部のz座標[m]
@@ -111,10 +177,27 @@ class MoveitCommand:
     self.group = moveit_commander.MoveGroupCommander("torso")
     self.group.set_pose_reference_frame("base_link")
 
+    #print self.group.get_planning_frame
+
+    listener = tf.TransformListener()
+
+    while True:
+      try:
+        (position, quaternion) = listener.lookupTransform('base_link', 'body_link', rospy.Time(0) )
+      except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+        continue
+      
+      if(len(position)>0): break
+
     current_pose = PoseStamped()
     current_pose = self.group.get_current_pose()
     target_pose = Pose()
     target_pose = current_pose.pose
+
+    target_pose.orientation.x = quaternion[0]
+    target_pose.orientation.y = quaternion[1]
+    target_pose.orientation.z = quaternion[2]
+    target_pose.orientation.w = quaternion[3]
 
     target_pose.position.x = _x
     target_pose.position.y = 0
@@ -387,6 +470,9 @@ if __name__ == '__main__':
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'move':
        StateMachine.add('ACTION ' + str(i), GO_TO_PLACE(sn.read_place(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'via':
+       StateMachine.add('ACTION ' + str(i), GO_TO_VIA_POINT(sn.read_place(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'lifter':
        StateMachine.add('ACTION ' + str(i), LIFTER(sn.read_position(i)), \
