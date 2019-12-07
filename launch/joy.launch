@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="joy_pad" default="ps3"/>
+  <arg name="joy_pad" default="elecom"/>
   <arg name="DUALSHOCK" default="true"/>
   
   <arg name="joy_config" default="ps3-holonomic" />
   <arg name="joy_dev" default="/dev/input/js0" />
-  <arg name="config_filepath" default="$(find teleonoid)/config/$(arg joy_config).config.yaml" />
+  <arg name="config_filepath" default="$(find task_editor)/config/$(arg joy_config).config.yaml" />
 
   <!-- JoyPad Settings -->
   <node pkg="joy" type="joy_node" name="joy_node" if="$(arg DUALSHOCK)">
@@ -20,7 +20,7 @@
   <node pkg="joy" type="joy_remap.py" name="$(arg joy_pad)_to_ps3" unless="$(eval joy_pad == 'ps3')">
     <remap from="joy_in" to="$(arg joy_pad)/joy" />
     <remap from="joy_out" to="joy" />
-    <rosparam command="load" file="$(find teleonoid)/config/$(arg joy_pad)_to_ps3.yaml"/>
+    <rosparam command="load" file="$(find task_editor)/config/$(arg joy_pad)_to_ps3.yaml"/>
   </node>
 
   <node pkg="teleop_twist_joy" name="teleop_twist_joy" type="teleop_node">

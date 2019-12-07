@@ -2,8 +2,8 @@
     task: move
     place: 0
 - action: 
-    task: move
-    place: 2
+    task: marker
+    marker: ar_marker_0
 - action: 
     task: move
     place: 1

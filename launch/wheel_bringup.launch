@@ -2,7 +2,7 @@
 
 <launch>
   <arg name="real" default="true" />
-  <arg name="joy_pad" default="ps3"/>  <!-- ps3 or elecom -->
+  <arg name="joy_pad" default="elecom"/>  <!-- ps3 or elecom -->
   <arg name="DUALSHOCK" default="true"/>
 
   <!--  URG Settings -->
@@ -18,7 +18,7 @@
     <param name="~angle_max" value="2.27" /> 
   </node>
 
-  <include file="$(find teleonoid)/launch/joy.launch">
+  <include file="$(find task_editor)/launch/joy.launch">
     <arg name="joy_pad" value="$(arg joy_pad)" />
     <arg name="DUALSHOCK" value="$(arg DUALSHOCK)"/>
   </include>

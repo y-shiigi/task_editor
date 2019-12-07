@@ -10,4 +10,7 @@
     <arg name="real" value="$(arg real)"/>
   </include>
 
+  <node name="task_controller" pkg="task_editor" type="task_controller" output="screen" />
+  <node name="waypoints_editor" pkg="task_editor" type="waypoints_editor" />
+
 </launch>

@@ -17,9 +17,19 @@
   <depend>yaml-cpp</depend>
   <depend>message_generation</depend>
 
+  <depend>smach</depend>
+  <depend>depthimage_to_laserscan</depend>
+  <depend>ar_track_alvar</depend>
+  <depend>trac_ik</depend>
+  <depend>trac_ik_kinematics_plugin</depend>
+  <depend>jsk_visualization</depend>
+
   <depend>seed_r7_ros_controller</depend>
   <depend>seed_r7_bringup</depend>
   <depend>seed_r7_navigation</depend>
+  <depend>seed_r7_robot_interface</depend>
+  <depend>seed_r7_moveit_config</depend>
   <depend>seed_r7_typef_moveit_config</depend>
+  <depend>seed_r7_typeg_moveit_config</depend>
 
 </package>
