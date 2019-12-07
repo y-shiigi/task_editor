@@ -23,6 +23,7 @@
   <depend>trac_ik</depend>
   <depend>trac_ik_kinematics_plugin</depend>
   <depend>jsk_visualization</depend>
+  <depend>moveit_ros_planning_interface</depend>
 
   <depend>seed_r7_ros_controller</depend>
   <depend>seed_r7_bringup</depend>
