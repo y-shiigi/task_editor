@@ -56,13 +56,14 @@ else()
 endif()
 
 #for service and client----
-# add_service_files(
-#  FILES
-# )
-#  generate_messages(
-#    DEPENDENCIES
-#    std_msgs
-#  )
+ add_service_files(
+  FILES
+  TaskController.srv
+ )
+  generate_messages(
+    DEPENDENCIES
+    std_msgs
+  )
 #--------------------------
 
 catkin_package()
@@ -76,3 +77,7 @@ include_directories(  ${catkin_INCLUDE_DIRS}  ${PCL_INCLUDE_DIRS} ${YAML_CPP_LIB
 add_executable(waypoints_editor src/WaypointsEditor.cpp)
 target_link_libraries(waypoints_editor ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
 
+add_executable(task_controller src/TaskController.cpp)
+target_link_libraries(task_controller ${catkin_LIBRARIES})
+
+add_dependencies(task_controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

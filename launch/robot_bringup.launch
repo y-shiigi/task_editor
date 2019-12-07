@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="REAL_ROBOT" default="true" />
+  <arg name="real" default="true" />
 
   <include file="$(find seed_r7_bringup)/launch/seed_r7_bringup.launch"/>
 
-  <include file="$(find seed_r7_typef_moveit_config)/launch/move_group.launch"/>
+  <include file="$(find seed_r7_typeg_moveit_config)/launch/move_group.launch"/>
 
   <include file="$(find task_editor)/launch/wheel_bringup.launch">
-    <arg name="REAL_ROBOT" value="$(arg REAL_ROBOT)"/>
+    <arg name="real" value="$(arg real)"/>
   </include>
 
 </launch>
