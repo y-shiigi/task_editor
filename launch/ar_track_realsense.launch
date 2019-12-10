@@ -13,7 +13,7 @@
   <arg name="max_track_error" default="0.2" />
   <arg name="cam_image_topic" default="$(arg camera)/camera/color/image_raw" />
   <arg name="cam_info_topic" default="$(arg camera)/camera/color/camera_info" />	
-  <arg name="output_frame" default="$(arg camera)_color_frame" />
+  <arg name="output_frame" default="$(arg camera)_link" />
 
   <group ns="$(arg camera)">
     <include file="$(find realsense2_camera)/launch/rs_camera.launch">

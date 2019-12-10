@@ -43,6 +43,9 @@ class NaviAction:
     ## @brief MoveBaseGoal型のゴール
     self.goal = MoveBaseGoal()
 
+    self.vel_pub_ = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+    self.vel_ = Twist()
+
   ## @brief ゴールポジションの設定と移動の開始
   # @param _number waypointsの番号(0以上の数値）
   # @return ゴールに到着したか否か（succeeded or aborted）
@@ -94,7 +97,7 @@ class NaviAction:
     self.ac.send_goal(self.goal)
     listener = tf.TransformListener()
 
-    timeout = time.time() + 10; #[sec]
+    timeout = time.time() + 10 #[sec]
 
     while True:
       try:
@@ -116,6 +119,24 @@ class NaviAction:
       else:
         rospy.sleep(0.5)
 
+  def set_velocity(self,_x,_y,_theta,_time):
+    self.vel_.linear.x = _x
+    self.vel_.linear.y = _y
+    self.vel_.angular.z = _theta
+
+    end_time = time.time() + _time #[sec]
+
+    while(time.time() < end_time):
+      self.vel_pub_.publish(self.vel_)
+
+    self.vel_.linear.x = 0
+    self.vel_.linear.y = 0
+    self.vel_.angular.z = 0
+
+    self.vel_pub_.publish(self.vel_)
+
+    return 'succeeded'
+        
   ## @brief move_baseの終了
   def shutdown(self):
     rospy.loginfo("The robot was terminated")
@@ -155,7 +176,21 @@ class GO_TO_VIA_POINT(State):
   def execute(self, userdata):
     print 'Going to Place'+str(self.place_)
     if(na.set_via_point(self.place_) == 'succeeded'):return 'succeeded'
-    else: return 'aborted' 
+    else: return 'aborted'
+
+class VELOCITY_MOVE(State):
+  def __init__(self,_velocity):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    velocity_string = _velocity.split(',')
+    self.vel_ = [float(s) for s in velocity_string]
+
+  def execute(self, userdata):
+    print 'velocity move ' + str(self.vel_[0]) +',' + str(self.vel_[1]) + ',' +\
+      str(self.vel_[2])  + ') in time ' + str(self.vel_[3])
+
+    if(na.set_velocity(self.vel_[0],self.vel_[1],self.vel_[2],self.vel_[3]) == 'succeeded'):return 'succeeded'
+    else: return 'aborted'
+
 #---------------------------------
 
 ###########################################
@@ -166,9 +201,6 @@ class MoveitCommand:
   def __init__(self):
     self.robot = moveit_commander.RobotCommander()
     self.scene = moveit_commander.PlanningSceneInterface()
-    self.dis_body_lifter = 1.065 - 0.92
-
-
 
   ## @brief lifterのIK算出と動作
   # @param _x リフター上部のx座標[m]
@@ -178,9 +210,11 @@ class MoveitCommand:
   def set_lifter_position(self, _x, _z, _vel=1.0):
     self.group = moveit_commander.MoveGroupCommander("torso")
     self.group.set_pose_reference_frame("base_link")
+    self.group.set_end_effector_link("body_link")
 
-    #print self.group.get_planning_frame
-
+    #distance_body_to_lifter_top = 1.065 - 0.92 #typeF
+    distance_body_to_lifter_top = 0.9945 - 0.8575 #typeG
+    
     listener = tf.TransformListener()
 
     while True:
@@ -191,20 +225,18 @@ class MoveitCommand:
       
       if(len(position)>0): break
 
-    current_pose = PoseStamped()
-    current_pose = self.group.get_current_pose()
     target_pose = Pose()
-    target_pose = current_pose.pose
 
-    target_pose.orientation.x = quaternion[0]
-    target_pose.orientation.y = quaternion[1]
-    target_pose.orientation.z = quaternion[2]
-    target_pose.orientation.w = quaternion[3]
+    target_pose.orientation.x = 0
+    target_pose.orientation.y = 0
+    target_pose.orientation.z = 0
+    target_pose.orientation.w = 1
 
     target_pose.position.x = _x
     target_pose.position.y = 0
-    target_pose.position.z = _z + self.dis_body_lifter
+    target_pose.position.z = _z + distance_body_to_lifter_top
 
+    self.group.set_start_state_to_current_state()
     self.group.set_pose_target(target_pose)
     self.group.set_max_velocity_scaling_factor(_vel)
     plan = self.group.plan()
@@ -238,6 +270,8 @@ class LIFTER(State):
     if(mc.set_lifter_position(self.position_[0],self.position_[1],self.position_[2]) == 'succeeded'):return 'succeeded'
     else: return 'aborted'
 
+
+    
 ###########################################
 ## @brief ナビゲーション以外のタスク実行クラス
 # task_controllerサーバー( TaskController.hh )とサービスコールで通信を行う
@@ -390,6 +424,11 @@ class Scenario:
     rev = dict(self.scenario[_number])
     return rev['action']['place']
 
+  def read_velocity(self, _number):
+    rev = dict(self.scenario[_number])
+
+    return rev['action']['velocity']
+  
   ## @brief リフターの姿勢読込
   # @param _number scenario.yamlのデータ行
   # @return リフターの絶対位置(x,z[m])と移動時間[msec]
@@ -451,6 +490,9 @@ if __name__ == '__main__':
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'via':
        StateMachine.add('ACTION ' + str(i), GO_TO_VIA_POINT(sn.read_place(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'vel_move':
+       StateMachine.add('ACTION ' + str(i), VELOCITY_MOVE(sn.read_velocity(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'lifter':
        StateMachine.add('ACTION ' + str(i), LIFTER(sn.read_position(i)), \

@@ -19,18 +19,18 @@ bool TaskController::moveMarker(std::string _marker){
   reached_x = reached_y = reached_th = false;
   rotate.setRPY(0,1.57,0);
 
-  double goal_x = 0.01;
+  double goal_x = 0.2;
   double goal_y = 0.01;
-  double goal_z = 0.01;
+  double goal_z = 0.02; //3[deg]
 
-  double gain_x = 0.3;
+  double gain_x = 0.1;
   double gain_y = 0.3;
-  double gain_z = 0.2;
+  double gain_z = 0.3;
 
   while(1){
     //marker_coord = GetTransformObject("ar_marker_0");
     marker_coord = GetTransformObject(_marker);
-    camera_coord = GetTransformObject("front_camera_color_frame");
+    camera_coord = GetTransformObject("front_camera_link");
 
     dx = marker_coord.getOrigin().x() - camera_coord.getOrigin().x();
     dy = marker_coord.getOrigin().y() - camera_coord.getOrigin().y();
@@ -58,6 +58,8 @@ bool TaskController::moveMarker(std::string _marker){
       if(reached_th == false) cmd_vel_.angular.z= dth * gain_z;
       else cmd_vel_.angular.z= 0;
 
+      std::cout << cmd_vel_.linear.x << "," << cmd_vel_.linear.y << "," << cmd_vel_.angular.z << std::endl;
+      
       cmd_vel_pub_.publish(cmd_vel_);
     }
   }
@@ -73,9 +75,6 @@ bool TaskController::moveMarker(std::string _marker){
 tf::StampedTransform TaskController::GetTransformObject(std::string object){
   tf::TransformListener listener;
   tf::StampedTransform transform;
-  // char *command;
-
-  //sprintf(command,"mplayer %s/scripts/sounds/no_tray.wav",pkg_path_.c_str());
 
   try{
     listener.waitForTransform("/base_link",object,
@@ -84,7 +83,6 @@ tf::StampedTransform TaskController::GetTransformObject(std::string object){
 			     ros::Time(0), transform);
   }
   catch (tf::TransformException ex){
-    //system(command);
     ROS_INFO("No getting point");
     ROS_ERROR("%s",ex.what());
     ros::Duration(1.0).sleep();

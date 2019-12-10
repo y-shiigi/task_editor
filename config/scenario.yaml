@@ -1,11 +1,59 @@
 - action: 
+    task: lifter
+    position: 0.0,0.7,0.5
+- action: 
     task: move
     place: 0
+- action: 
+    task: move
+    place: 1
+- action: 
+    task: move
+    place: 2
 - action: 
     task: marker
     marker: ar_marker_0
 - action: 
+    task: lifter
+    position: 0.0,0.857,1.0
+- action: 
+    task: vel_move
+    velocity: -0.1,0.0,0.0,8
+- action: 
+    task: lifter
+    position: 0.0,0.7,0.5
+- action: 
+    task: move
+    place: 3
+- action: 
+    task: move
+    place: 0
+- action: 
     task: move
     place: 1
+- action: 
+    task: move
+    place: 2
+- action: 
+    task: lifter
+    position: 0.0,0.857,1.0
+- action: 
+    task: marker
+    marker: ar_marker_0
+- action: 
+    task: lifter
+    position: 0.0,0.7,0.5
+- action: 
+    task: vel_move
+    velocity: -0.1,0.0,0.0,8
+- action: 
+    task: move
+    place: 3
+- action: 
+    task: move
+    place: 0
+- action: 
+    task: loop
+    jump: 1,-1
 - action: 
     task: end
