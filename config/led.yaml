@@ -1,0 +1,74 @@
+- action: 
+    task: led
+    led: 10,1
+- action: 
+    task: led
+    led: 11,1
+- action: 
+    task: wait
+    time: 2000
+- action: 
+    task: led
+    led: 10,2
+- action: 
+    task: led
+    led: 11,2
+- action: 
+    task: wait
+    time: 2000
+- action: 
+    task: led
+    led: 10,3
+- action: 
+    task: led
+    led: 11,3
+- action: 
+    task: wait
+    time: 2000
+- action: 
+    task: led
+    led: 10,4
+- action: 
+    task: led
+    led: 11,4
+- action: 
+    task: wait
+    time: 2000
+- action: 
+    task: led
+    led: 10,5
+- action: 
+    task: led
+    led: 11,5
+- action: 
+    task: wait
+    time: 2000
+- action: 
+    task: led
+    led: 10,6
+- action: 
+    task: led
+    led: 11,6
+- action: 
+    task: wait
+    time: 2000
+- action: 
+    task: led
+    led: 10,7
+- action: 
+    task: led
+    led: 11,7
+- action: 
+    task: wait
+    time: 2000
+- action: 
+    task: led
+    led: 10,8
+- action: 
+    task: led
+    led: 11,8
+- action: 
+    task: wait
+    time: 2000
+- action: 
+    task: end

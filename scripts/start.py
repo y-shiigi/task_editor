@@ -21,8 +21,9 @@ import rospkg
 import moveit_commander
 import moveit_msgs.msg
 from geometry_msgs.msg import Pose, PoseStamped
-##-- for task
+##-- for service call
 from task_editor.srv import *
+from seed_r7_ros_controller.srv import *
 
 ###########################################
 ## @brief ナビゲーション関連のクラス
@@ -278,8 +279,10 @@ class LIFTER(State):
 class TaskAction:
   ## @brief コンストラクタ。task_controllerサーバーの起動を待つ
   def __init__(self):
-    rospy.loginfo('waiting service')
+    rospy.loginfo('waiting task_controller service')
     rospy.wait_for_service('task_controller')
+    rospy.loginfo('waiting led_control service')
+    rospy.wait_for_service('led_control')    
 
   ## @brief タスクの設定と実行を行う。task_controllerクライアントを作成し、サーバーへサービスを呼び出す。@n
   # 型の定義は TaskController.srv を参照のこと
@@ -291,11 +294,19 @@ class TaskAction:
   # @return サービスの結果
   def set_action(self,_task,_marker):
     try:
-        service = rospy.ServiceProxy('task_controller', TaskController)
-        response = service(_task,_marker)
-        return response.result
+      service = rospy.ServiceProxy('task_controller', TaskController)
+      response = service(_task,_marker)
+      return response.result
     except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+      print "Service call failed: %s"%e
+
+  def set_led(self, _send_number, _script_number):
+    try:
+      service = rospy.ServiceProxy('led_control', LedControl)
+      response = service(_send_number,_script_number)
+      return response.result
+    except rospy.ServiceException, e:
+      print "Service call failed: %s"%e
 
 #---------------------------------
 class GO_TO_MARKER(State):
@@ -308,6 +319,16 @@ class GO_TO_MARKER(State):
     if(ta.set_action("marker",self.marker_) == 'succeeded'):return 'succeeded'
     else: return 'aborted'
 
+class TURN_ON_LED(State):
+  def __init__(self,_led):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    led_string = _led.split(',')
+    self.led_ = [int(s) for s in led_string]
+
+  def execute(self, userdata):
+    print 'Turn on ' + str(self.led_[0])  + ' script at ' + str(self.led_[1])
+    if(ta.set_led(self.led_[0],self.led_[1]) == 'succeeded'):return 'succeeded'
+    else: return 'aborted'
 
 ##########################################
 ## @brief ”待ち”ステート 
@@ -466,6 +487,10 @@ class Scenario:
     rev = dict(self.scenario[_number])
     return rev['action']['marker']
 
+  def read_led(self, _number):
+    rev = dict(self.scenario[_number])
+    return rev['action']['led']
+
 #==================================
 #==================================
 if __name__ == '__main__':
@@ -483,28 +508,31 @@ if __name__ == '__main__':
 
     for i in range(sn.scenario_size):
       if sn.read_task(i) == 'init':
-       StateMachine.add('ACTION ' + str(i), INITIALIZE(), \
+        StateMachine.add('ACTION ' + str(i), INITIALIZE(), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'move':
-       StateMachine.add('ACTION ' + str(i), GO_TO_PLACE(sn.read_place(i)), \
+        StateMachine.add('ACTION ' + str(i), GO_TO_PLACE(sn.read_place(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'via':
-       StateMachine.add('ACTION ' + str(i), GO_TO_VIA_POINT(sn.read_place(i)), \
+        StateMachine.add('ACTION ' + str(i), GO_TO_VIA_POINT(sn.read_place(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'vel_move':
-       StateMachine.add('ACTION ' + str(i), VELOCITY_MOVE(sn.read_velocity(i)), \
+        StateMachine.add('ACTION ' + str(i), VELOCITY_MOVE(sn.read_velocity(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'lifter':
-       StateMachine.add('ACTION ' + str(i), LIFTER(sn.read_position(i)), \
+        StateMachine.add('ACTION ' + str(i), LIFTER(sn.read_position(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'wait':
-       StateMachine.add('ACTION ' + str(i), WAIT(sn.read_time(i)), \
+        StateMachine.add('ACTION ' + str(i), WAIT(sn.read_time(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'loop':
-       StateMachine.add('ACTION ' + str(i), LOOP(sn.read_count(i)), \
+        StateMachine.add('ACTION ' + str(i), LOOP(sn.read_count(i)), \
           transitions={'succeeded':'ACTION '+ str(sn.read_jump(i)),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'marker':
-       StateMachine.add('ACTION ' + str(i), GO_TO_MARKER(sn.read_marker(i)), \
+        StateMachine.add('ACTION ' + str(i), GO_TO_MARKER(sn.read_marker(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'led':
+        StateMachine.add('ACTION ' + str(i), TURN_ON_LED(sn.read_led(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'end':
        StateMachine.add('ACTION ' + str(i), FINISH(), \
