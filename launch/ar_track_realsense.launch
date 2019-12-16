@@ -2,13 +2,14 @@
 
 <launch>
   <!-- realsense settings -->
-  <arg name="serial_no_camera"    			default="918512073682"/> 			<!-- Note: Replace with actual serial number -->
-  <arg name="camera"              			default="front_camera"/>		<!-- Note: Replace with camera name -->
+  <!--  <arg name="serial_no_camera"    			default="918512073269"/> -->
+  <arg name="serial_no_camera"    			default="918512073682"/>    <!-- Note: Replace with actual serial number -->
+  <arg name="camera"              			default="front_camera"/>    <!-- Note: Replace with camera name -->
   <arg name="tf_prefix_camera"         default="$(arg camera)"/>
   <arg name="initial_reset"             default="false"/>
 
   <!-- ar marker settings -->
-  <arg name="marker_size" default="2.25" />
+  <arg name="marker_size" default="6.6" />
   <arg name="max_new_marker_error" default="0.08" />
   <arg name="max_track_error" default="0.2" />
   <arg name="cam_image_topic" default="$(arg camera)/camera/color/image_raw" />

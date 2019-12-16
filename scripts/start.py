@@ -3,6 +3,7 @@
 import sys
 import time
 import rospy
+import subprocess
 ##-- for smach
 from smach import State,StateMachine
 import smach_ros
@@ -140,6 +141,8 @@ class NaviAction:
         
   ## @brief move_baseの終了
   def shutdown(self):
+    ta.set_led(10,2)
+    ta.set_led(11,2)
     rospy.loginfo("The robot was terminated")
     self.ac.cancel_goal()
 #--------------------------------
@@ -157,6 +160,8 @@ class GO_TO_PLACE(State):
   # @param userdata 前のステートから引き継がれた変数。今回は使用しない
   # @return ゴールに到着したか否か（succeeded or aborted）
   def execute(self, userdata):
+    ta.set_led(10,5)
+    ta.set_led(11,5)
     print 'Going to Place'+str(self.place_)
     if(na.set_goal(self.place_) == 'succeeded'):return 'succeeded'
     else: return 'aborted' 
@@ -186,6 +191,8 @@ class VELOCITY_MOVE(State):
     self.vel_ = [float(s) for s in velocity_string]
 
   def execute(self, userdata):
+    ta.set_led(10,6)
+    ta.set_led(11,6)
     print 'velocity move ' + str(self.vel_[0]) +',' + str(self.vel_[1]) + ',' +\
       str(self.vel_[2])  + ') in time ' + str(self.vel_[3])
 
@@ -266,6 +273,8 @@ class LIFTER(State):
   # @param userdata 前のステートから引き継がれた変数。今回は使用しない
   # @return サービスの呼び出し結果（succeeded or aborted）
   def execute(self, userdata):
+    ta.set_led(10,3)
+    ta.set_led(11,3)
     print 'Move Lifter at (' + str(self.position_[0]) +',' + \
       str(self.position_[1]) +') in scale velocity ' + str(self.position_[2])
     if(mc.set_lifter_position(self.position_[0],self.position_[1],self.position_[2]) == 'succeeded'):return 'succeeded'
@@ -315,6 +324,8 @@ class GO_TO_MARKER(State):
     self.marker_ = str(_marker)
 
   def execute(self, userdata):
+    ta.set_led(10,4)
+    ta.set_led(11,4)
     print 'Go to at (' + self.marker_ +')'
     if(ta.set_action("marker",self.marker_) == 'succeeded'):return 'succeeded'
     else: return 'aborted'
@@ -346,6 +357,8 @@ class WAIT(State):
   # @param userdata 前のステートから引き継がれた変数。今回は使用しない
   # @return succeededのみ
   def execute(self, userdata):
+    ta.set_led(10,2)
+    ta.set_led(11,2)
     if(self.time_ >= 0):
       print 'wait ' + str(self.time_) + 'msec'
       rospy.sleep(self.time_ * 0.001)
@@ -412,6 +425,18 @@ class NONE(State):
   def execute(self, userdata):
     return 'succeeded'
 
+class ROS_CLEAN(State):
+  def __init__(self):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+
+  def execute(self, userdata):
+    pwd = 'seed'
+    cmd = 'find /var/log/ -type f -name \* -exec cp -f /dev/null {} \;'
+    subprocess.call('echo {} | sudo -S {}'.format(pwd,cmd), shell=True)
+    #subprocess.call("rosclean purge -y", shell=True)
+    return 'succeeded'
+
+  
 ############################################
 ## @brief シナリオの読込クラス
 class Scenario:
@@ -534,6 +559,9 @@ if __name__ == '__main__':
       elif sn.read_task(i) == 'led':
         StateMachine.add('ACTION ' + str(i), TURN_ON_LED(sn.read_led(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'ros_clean':
+       StateMachine.add('ACTION ' + str(i), ROS_CLEAN(), \
+          transitions={'succeeded':'succeeded','aborted':'aborted'})
       elif sn.read_task(i) == 'end':
        StateMachine.add('ACTION ' + str(i), FINISH(), \
           transitions={'succeeded':'succeeded','aborted':'aborted'})

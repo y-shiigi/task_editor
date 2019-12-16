@@ -19,7 +19,7 @@ bool TaskController::moveMarker(std::string _marker){
   reached_x = reached_y = reached_th = false;
   rotate.setRPY(0,1.57,0);
 
-  double goal_x = 0.2;
+  double goal_x = 0.12;
   double goal_y = 0.01;
   double goal_z = 0.02; //3[deg]
 
@@ -55,10 +55,10 @@ bool TaskController::moveMarker(std::string _marker){
       if(reached_y == false) cmd_vel_.linear.y = dy * gain_y;
       else cmd_vel_.linear.y = 0;
 
-      if(reached_th == false) cmd_vel_.angular.z= dth * gain_z;
+      if(dth < 0.52 && reached_th == false) cmd_vel_.angular.z= dth * gain_z;
       else cmd_vel_.angular.z= 0;
 
-      std::cout << cmd_vel_.linear.x << "," << cmd_vel_.linear.y << "," << cmd_vel_.angular.z << std::endl;
+      //std::cout << cmd_vel_.linear.x << "," << cmd_vel_.linear.y << "," << cmd_vel_.angular.z << std::endl;
       
       cmd_vel_pub_.publish(cmd_vel_);
     }
@@ -76,11 +76,10 @@ tf::StampedTransform TaskController::GetTransformObject(std::string object){
   tf::TransformListener listener;
   tf::StampedTransform transform;
 
+  ros::Time now = ros::Time(0);
   try{
-    listener.waitForTransform("/base_link",object,
-			      ros::Time(0), ros::Duration(2.0));
-    listener.lookupTransform("/base_link",object,
-			     ros::Time(0), transform);
+    listener.waitForTransform("/base_link",object,now, ros::Duration(2.0));
+    listener.lookupTransform("/base_link",object,now, transform);
   }
   catch (tf::TransformException ex){
     ROS_INFO("No getting point");

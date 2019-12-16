@@ -2,4 +2,10 @@
     task: marker
     marker: ar_marker_0
 - action: 
+    task: wait
+    time: 3000
+- action: 
+    task: vel_move
+    velocity: -0.1,0.0,0.0,8
+- action: 
     task: end

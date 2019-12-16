@@ -14,8 +14,8 @@
     <param name="~frame_id" value="$(arg ~frame_id)" />
 
     <!-- +-115[deg] -->
-    <param name="~angle_min" value="-2.27" />
-    <param name="~angle_max" value="2.27" /> 
+    <param name="~angle_min" value="-2.01" />
+    <param name="~angle_max" value="2.01" /> 
   </node>
 
   <include file="$(find task_editor)/launch/joy.launch">

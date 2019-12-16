@@ -1,18 +1,6 @@
 - action: 
-    task: led
-    led: 10,5
-- action: 
-    task: led
-    led: 11,5
-- action: 
     task: lifter
-    position: 0.0,0.7,0.5
-- action: 
-    task: led
-    led: 10,4
-- action: 
-    task: led
-    led: 11,4
+    position: 0.0,0.5,0.5
 - action: 
     task: move
     place: 0
@@ -23,47 +11,20 @@
     task: move
     place: 2
 - action: 
-    task: led
-    led: 10,2
-- action: 
-    task: led
-    led: 11,2
-- action: 
     task: marker
     marker: ar_marker_0
 - action: 
-    task: led
-    led: 10,5
-- action: 
-    task: led
-    led: 11,5
+    task: lifter
+    position: 0.24,0.65,1.0
 - action: 
     task: lifter
-    position: 0.0,0.857,1.0
-- action: 
-    task: led
-    led: 10,4
-- action: 
-    task: led
-    led: 11,4
+    position: 0.0,0.857,0.8
 - action: 
     task: vel_move
     velocity: -0.1,0.0,0.0,8
 - action: 
-    task: led
-    led: 10,5
-- action: 
-    task: led
-    led: 11,5
-- action: 
     task: lifter
-    position: 0.0,0.7,0.5
-- action: 
-    task: led
-    led: 10,4
-- action: 
-    task: led
-    led: 11,4
+    position: 0.0,0.5,0.5
 - action: 
     task: move
     place: 3
@@ -77,38 +38,17 @@
     task: move
     place: 2
 - action: 
-    task: led
-    led: 10,5
-- action: 
-    task: led
-    led: 11,5
-- action: 
     task: lifter
-    position: 0.0,0.857,1.0
-- action: 
-    task: led
-    led: 10,2
-- action: 
-    task: led
-    led: 11,2
+    position: 0.0,0.857,0.5
 - action: 
     task: marker
     marker: ar_marker_0
 - action: 
-    task: led
-    led: 10,5
-- action: 
-    task: led
-    led: 11,5
+    task: lifter
+    position: 0.24,0.65,1.0
 - action: 
     task: lifter
-    position: 0.0,0.7,0.5
-- action: 
-    task: led
-    led: 10,4
-- action: 
-    task: led
-    led: 11,4
+    position: 0.0,0.5,1.0
 - action: 
     task: vel_move
     velocity: -0.1,0.0,0.0,8
