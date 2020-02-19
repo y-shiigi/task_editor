@@ -3,6 +3,7 @@
 import sys
 import time
 import rospy
+import subprocess
 ##-- for smach
 from smach import State,StateMachine
 import smach_ros
@@ -21,6 +22,12 @@ import rospkg
 import moveit_commander
 import moveit_msgs.msg
 from geometry_msgs.msg import Pose, PoseStamped
+##-- for service call
+from task_editor.srv import *
+from seed_r7_ros_controller.srv import *
+from std_srvs.srv import*
+##-- for dynamic reconfigure
+import dynamic_reconfigure.client
 
 ###########################################
 ## @brief ナビゲーション関連のクラス
@@ -40,6 +47,9 @@ class NaviAction:
     rospy.loginfo("The server comes up");
     ## @brief MoveBaseGoal型のゴール
     self.goal = MoveBaseGoal()
+
+    self.vel_pub_ = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+    self.vel_ = Twist()
 
   ## @brief ゴールポジションの設定と移動の開始
   # @param _number waypointsの番号(0以上の数値）
@@ -92,7 +102,7 @@ class NaviAction:
     self.ac.send_goal(self.goal)
     listener = tf.TransformListener()
 
-    timeout = time.time() + 10; #[sec]
+    timeout = time.time() + 8 #[sec]
 
     while True:
       try:
@@ -112,11 +122,31 @@ class NaviAction:
         return 'aborted' 
 
       else:
-        rospy.sleep(0.5)
+        pass
+        
+  def set_velocity(self,_x,_y,_theta,_time):
+    self.vel_.linear.x = _x
+    self.vel_.linear.y = _y
+    self.vel_.angular.z = _theta
 
+    end_time = time.time() + _time #[sec]
+
+    while(time.time() < end_time):
+      self.vel_pub_.publish(self.vel_)
+
+    self.vel_.linear.x = 0
+    self.vel_.linear.y = 0
+    self.vel_.angular.z = 0
+
+    self.vel_pub_.publish(self.vel_)
+
+    return 'succeeded'
+        
   ## @brief move_baseの終了
   def shutdown(self):
-    rospy.loginfo("The robot was terminated")
+    #ta.set_led(10,2)
+    #ta.set_led(11,2)
+    #rospy.loginfo("The robot was terminated")
     self.ac.cancel_goal()
 #--------------------------------
 ## @brief ”ムーバー移動”ステート
@@ -133,6 +163,8 @@ class GO_TO_PLACE(State):
   # @param userdata 前のステートから引き継がれた変数。今回は使用しない
   # @return ゴールに到着したか否か（succeeded or aborted）
   def execute(self, userdata):
+    #ta.set_led(10,5)
+    #ta.set_led(11,5)
     print 'Going to Place'+str(self.place_)
     if(na.set_goal(self.place_) == 'succeeded'):return 'succeeded'
     else: return 'aborted' 
@@ -151,9 +183,27 @@ class GO_TO_VIA_POINT(State):
   # @param userdata 前のステートから引き継がれた変数。今回は使用しない
   # @return ゴールに付近に到着したか否か（succeeded or aborted）
   def execute(self, userdata):
+    #ta.set_led(10,5)
+    #ta.set_led(11,5)
     print 'Going to Place'+str(self.place_)
     if(na.set_via_point(self.place_) == 'succeeded'):return 'succeeded'
-    else: return 'aborted' 
+    else: return 'aborted'
+
+class VELOCITY_MOVE(State):
+  def __init__(self,_velocity):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    velocity_string = _velocity.split(',')
+    self.vel_ = [float(s) for s in velocity_string]
+
+  def execute(self, userdata):
+    #ta.set_led(10,6)
+    #ta.set_led(11,6)
+    print 'velocity move ' + str(self.vel_[0]) +',' + str(self.vel_[1]) + ',' +\
+      str(self.vel_[2])  + ') in time ' + str(self.vel_[3])
+
+    if(na.set_velocity(self.vel_[0],self.vel_[1],self.vel_[2],self.vel_[3]) == 'succeeded'):return 'succeeded'
+    else: return 'aborted'
+
 #---------------------------------
 
 ###########################################
@@ -164,9 +214,12 @@ class MoveitCommand:
   def __init__(self):
     self.robot = moveit_commander.RobotCommander()
     self.scene = moveit_commander.PlanningSceneInterface()
-    self.dis_body_lifter = 1.065 - 0.92
+    print "set_group"
+    self.group = moveit_commander.MoveGroupCommander("torso")
+    self.group.set_pose_reference_frame("base_link")
+    self.group.set_end_effector_link("body_link")
 
-
+    #self.tf_listener = tf.TransformListener()
 
   ## @brief lifterのIK算出と動作
   # @param _x リフター上部のx座標[m]
@@ -174,45 +227,38 @@ class MoveitCommand:
   # @param _vel 速度のスケーリング : 0〜１
   # @return IKが算出できて、移動が完了したか否か（succeeded or aborted）
   def set_lifter_position(self, _x, _z, _vel=1.0):
-    self.group = moveit_commander.MoveGroupCommander("torso")
-    self.group.set_pose_reference_frame("base_link")
 
-    #print self.group.get_planning_frame
-
-    listener = tf.TransformListener()
-
-    while True:
-      try:
-        (position, quaternion) = listener.lookupTransform('base_link', 'body_link', rospy.Time(0) )
-      except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-        continue
-      
-      if(len(position)>0): break
-
-    current_pose = PoseStamped()
-    current_pose = self.group.get_current_pose()
+    distance_body_to_lifter_top = 1.065 - 0.92 #typeF
+    #distance_body_to_lifter_top = 0.9945 - 0.8575 #typeG
+    
     target_pose = Pose()
-    target_pose = current_pose.pose
 
-    target_pose.orientation.x = quaternion[0]
-    target_pose.orientation.y = quaternion[1]
-    target_pose.orientation.z = quaternion[2]
-    target_pose.orientation.w = quaternion[3]
+    target_pose.orientation.x = 0
+    target_pose.orientation.y = 0
+    target_pose.orientation.z = 0
+    target_pose.orientation.w = 1
 
     target_pose.position.x = _x
     target_pose.position.y = 0
-    target_pose.position.z = _z + self.dis_body_lifter
+    target_pose.position.z = _z + distance_body_to_lifter_top
 
+    #self.group.set_start_state_to_current_state()
+    print "set pose"
     self.group.set_pose_target(target_pose)
     self.group.set_max_velocity_scaling_factor(_vel)
+
+    print "plan stat"
     plan = self.group.plan()
 
+    print "check plan"
     if(len(plan.joint_trajectory.points)==0):
       rospy.logwarn("can't be solved lifter ik")
       self.group.clear_pose_targets()
       return 'aborted'
-    else: 
+    else:
+      print "execute plan"
       self.group.execute(plan)
+      self.group.clear_pose_targets()
       return 'succeeded'
 
 #---------------------------------
@@ -231,20 +277,25 @@ class LIFTER(State):
   # @param userdata 前のステートから引き継がれた変数。今回は使用しない
   # @return サービスの呼び出し結果（succeeded or aborted）
   def execute(self, userdata):
+    #ta.set_led(10,3)
+    #ta.set_led(11,3)
     print 'Move Lifter at (' + str(self.position_[0]) +',' + \
       str(self.position_[1]) +') in scale velocity ' + str(self.position_[2])
     if(mc.set_lifter_position(self.position_[0],self.position_[1],self.position_[2]) == 'succeeded'):return 'succeeded'
     else: return 'aborted'
 
-'''
+
+    
 ###########################################
 ## @brief ナビゲーション以外のタスク実行クラス
 # task_controllerサーバー( TaskController.hh )とサービスコールで通信を行う
 class TaskAction:
   ## @brief コンストラクタ。task_controllerサーバーの起動を待つ
   def __init__(self):
-    rospy.loginfo('waiting service')
+    rospy.loginfo('waiting task_controller service')
     rospy.wait_for_service('task_controller')
+    rospy.loginfo('waiting led_control service')
+    rospy.wait_for_service('led_control')    
 
   ## @brief タスクの設定と実行を行う。task_controllerクライアントを作成し、サーバーへサービスを呼び出す。@n
   # 型の定義は TaskController.srv を参照のこと
@@ -254,52 +305,45 @@ class TaskAction:
   # @param _lifter_position リフターの位置と移動時間
   # @param _time 待ち時間
   # @return サービスの結果
-  def set_action(self,_task,_place,_lifter_position, _time):
+  def set_action(self,_task,_marker):
     try:
-        service = rospy.ServiceProxy('task_controller', TaskController)
-        response = service(_task,_place,_lifter_position, _time)
-        return response.result
+      service = rospy.ServiceProxy('task_controller', TaskController)
+      response = service(_task,_marker)
+      return response.result
     except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+      print "Service call failed: %s"%e
+
+  def set_led(self, _send_number, _script_number):
+    try:
+      service = rospy.ServiceProxy('led_control', LedControl)
+      response = service(_send_number,_script_number)
+      return response.result
+    except rospy.ServiceException, e:
+      print "Service call failed: %s"%e
 
 #---------------------------------
-## @brief ”初期化”ステート 
-# @param State smachのステートクラスを継承
-class INITIALIZE(State):
-  ## @brief コンストラクタ。ステートの振る舞い(succeeded or aborted)定義
-  def __init__(self):
+class GO_TO_MARKER(State):
+  def __init__(self,_marker):
     State.__init__(self, outcomes=['succeeded','aborted'])
+    self.marker_ = str(_marker)
 
-  ## @brief 遷移実行
-  # @param userdata 前のステートから引き継がれた変数。今回は使用しない
-  # @return サービスの呼び出し結果（succeeded or aborted）
   def execute(self, userdata):
-    print 'Initialize'
-    if(ta.set_action("init",0,0,0) == 'succeeded'):return 'succeeded'
+    #ta.set_led(10,4)
+    #ta.set_led(11,4)
+    print 'Go to at (' + self.marker_ +')'
+    if(ta.set_action("marker",self.marker_) == 'succeeded'):return 'succeeded'
     else: return 'aborted'
 
-#---------------------------------
-## @brief ”リフター移動”ステート 
-# @param State smachのステートクラスを継承
-class LIFTER(State):
-  ## @brief コンストラクタ。ステートの振る舞い(succeeded or aborted)定義
-  # @param _position リフターの絶対位置(x,y)[m]と移動時間[msec]
-  def __init__(self,_position):
+class TURN_ON_LED(State):
+  def __init__(self,_led):
     State.__init__(self, outcomes=['succeeded','aborted'])
-    position_string = _position.split(',')
-    ## @brief リフターの絶対位置(x,y)[m]と移動時間[msec]
-    self.position_ = [float(s) for s in position_string]
+    led_string = _led.split(',')
+    self.led_ = [int(s) for s in led_string]
 
-  ## @brief 遷移実行
-  # @param userdata 前のステートから引き継がれた変数。今回は使用しない
-  # @return サービスの呼び出し結果（succeeded or aborted）
   def execute(self, userdata):
-    print 'Move Lifter at (' + str(self.position_[0]) +',' + str(self.position_[1]) +') in time of ' + str(self.position_[2])
-    if(ta.set_action("lifter",0,self.position_,0) == 'succeeded'):return 'succeeded'
+    print 'Turn on ' + str(self.led_[0])  + ' script at ' + str(self.led_[1])
+    if(ta.set_led(self.led_[0],self.led_[1]) == 'succeeded'):return 'succeeded'
     else: return 'aborted'
-
-#---------------------------------
-'''
 
 ##########################################
 ## @brief ”待ち”ステート 
@@ -317,9 +361,12 @@ class WAIT(State):
   # @param userdata 前のステートから引き継がれた変数。今回は使用しない
   # @return succeededのみ
   def execute(self, userdata):
+    #ta.set_led(10,2)
+    #ta.set_led(11,2)
     if(self.time_ >= 0):
       print 'wait ' + str(self.time_) + 'msec'
       rospy.sleep(self.time_ * 0.001)
+      rospy.set_param('/task_editor/jump', 1)
     else :
       print 'wait for /task_editor/wait_task is False'
       rospy.set_param('/task_editor/wait_task',True)
@@ -327,7 +374,10 @@ class WAIT(State):
 
     rospy.set_param('/task_editor/wait_task',False)
 
-    return 'succeeded'
+    if (rospy.get_param('/task_editor/jump') == -1):
+      rospy.logwarn("run previous task")
+      return 'aborted'
+    else : return 'succeeded'
 
 ##########################################
 ## @brief ”ループ”ステート 
@@ -383,6 +433,74 @@ class NONE(State):
   def execute(self, userdata):
     return 'succeeded'
 
+class ROS_CLEAN(State):
+  def __init__(self):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+
+  def execute(self, userdata):
+    pwd = 'seed'
+    cmd = 'find /var/log/ -type f -name \* -exec cp -f /dev/null {} \;'
+    subprocess.call('echo {} | sudo -S {}'.format(pwd,cmd), shell=True)
+    #subprocess.call("rosclean purge -y", shell=True)
+    return 'succeeded'
+
+class LOAD_MAP(State):
+  def __init__(self,_name):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    #self.name_ = str(_name)
+    rospack = rospkg.RosPack()
+    rospack.list() 
+    path = rospack.get_path('task_editor')
+    ## @brief 読み込まれたシナリオのデータ
+    self.map_path = path + "/config/maps/" + str(_name) + ".yaml"
+
+  def execute(self, userdata):
+    rospy.loginfo("load map")
+
+    cmd = 'export DISPLAY=:0.0; \
+      gnome-terminal --tab -e \'bash -c \"rosrun map_server map_server {} __name:=map_localization_server \"\' \
+      --tab -e \'bash -c \"rosrun map_server map_server {} __name:=map_planning_server map:=map_keepout \"\' \
+      ;export DISPLAY=:10.0'
+    subprocess.call(cmd.format(self.map_path,self.map_path), shell=True)
+    rospy.sleep(1)
+
+    try:
+      rospy.loginfo("set initialpose")
+      set_initialpose = rospy.ServiceProxy('set_initialpose', SetInitialPose)
+      res = set_initialpose(0, 0, 0)
+      rospy.sleep(1)
+      return 'succeeded'
+
+    except rospy.ServiceException, e:
+      print "Service call failed: %s"%e
+      return 'aborted'
+
+class SET_INFLATION(State):
+  def __init__(self,_value):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    self.value_ = float(_value)
+    self.client = dynamic_reconfigure.client.Client("/move_base/local_costmap/inflation", timeout=30)
+
+  def execute(self, userdata):
+    print "set inflation"
+    self.client.update_configuration({"inflation_radius":self.value_})
+    
+    return 'succeeded'
+
+class SET_MAX_VELOCITY(State):
+  def __init__(self, _velocity):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    velocity_string = _velocity.split(',')
+    self.velocity_ = [float(s) for s in velocity_string]
+    self.client = dynamic_reconfigure.client.Client("/move_base/TebLocalPlannerROS", timeout=30)
+
+  def execute(self, userdata):
+    print "set max velocity"
+    self.client.update_configuration({"max_vel_x":self.velocity_[0], "max_vel_y":self.velocity_[1], "max_vel_theta":self.velocity_[2]})
+    
+    return 'succeeded'
+
+  
 ############################################
 ## @brief シナリオの読込クラス
 class Scenario:
@@ -401,6 +519,7 @@ class Scenario:
     self.scenario_size = len(self.scenario)
 
     rospy.set_param('/task_editor/wait_task',False)
+    rospy.set_param('/task_editor/jump',1)
 
   ## @brief タスクの読込
   # @param _number scenario.yamlのデータ行
@@ -416,6 +535,11 @@ class Scenario:
     rev = dict(self.scenario[_number])
     return rev['action']['place']
 
+  def read_velocity(self, _number):
+    rev = dict(self.scenario[_number])
+
+    return rev['action']['velocity']
+  
   ## @brief リフターの姿勢読込
   # @param _number scenario.yamlのデータ行
   # @return リフターの絶対位置(x,z[m])と移動時間[msec]
@@ -449,6 +573,27 @@ class Scenario:
     rev = dict(self.scenario[_number])
     return rev['action']['jump'].split(',')[1]
 
+  def read_marker(self, _number):
+    rev = dict(self.scenario[_number])
+    return rev['action']['marker']
+
+  def read_led(self, _number):
+    rev = dict(self.scenario[_number])
+    return rev['action']['led']
+
+  def read_map(self, _number):
+    rev = dict(self.scenario[_number])
+    return rev['action']['name']
+  
+  def read_inflation(self, _number):
+    rev = dict(self.scenario[_number])
+    return rev['action']['value']
+
+  def read_max_velocity(self, _number):
+    rev = dict(self.scenario[_number])
+    return rev['action']['value']
+
+  
 #==================================
 #==================================
 if __name__ == '__main__':
@@ -456,7 +601,7 @@ if __name__ == '__main__':
 
   mc = MoveitCommand()
   na = NaviAction()
-  #ta = TaskAction()
+  ta = TaskAction()
   sn = Scenario()
 
   # scneario_playというステートマシンのインスタンスを作成
@@ -464,30 +609,54 @@ if __name__ == '__main__':
   # scneario_playにステートを追加
   with scenario_play:
 
+    StateMachine.add('ACTION -1', NONE(), \
+      transitions={'succeeded':'ACTION 0','aborted':'ACTION 0'})
+
     for i in range(sn.scenario_size):
       if sn.read_task(i) == 'init':
-       StateMachine.add('ACTION ' + str(i), INITIALIZE(), \
+        StateMachine.add('ACTION ' + str(i), INITIALIZE(), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'move':
-       StateMachine.add('ACTION ' + str(i), GO_TO_PLACE(sn.read_place(i)), \
+        StateMachine.add('ACTION ' + str(i), GO_TO_PLACE(sn.read_place(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'via':
-       StateMachine.add('ACTION ' + str(i), GO_TO_VIA_POINT(sn.read_place(i)), \
+        StateMachine.add('ACTION ' + str(i), GO_TO_VIA_POINT(sn.read_place(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'vel_move':
+        StateMachine.add('ACTION ' + str(i), VELOCITY_MOVE(sn.read_velocity(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'lifter':
-       StateMachine.add('ACTION ' + str(i), LIFTER(sn.read_position(i)), \
+        StateMachine.add('ACTION ' + str(i), LIFTER(sn.read_position(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'wait':
-       StateMachine.add('ACTION ' + str(i), WAIT(sn.read_time(i)), \
-          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+        StateMachine.add('ACTION ' + str(i), WAIT(sn.read_time(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i-1)})
       elif sn.read_task(i) == 'loop':
-       StateMachine.add('ACTION ' + str(i), LOOP(sn.read_count(i)), \
+        StateMachine.add('ACTION ' + str(i), LOOP(sn.read_count(i)), \
           transitions={'succeeded':'ACTION '+ str(sn.read_jump(i)),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'marker':
+        StateMachine.add('ACTION ' + str(i), GO_TO_MARKER(sn.read_marker(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'led':
+        StateMachine.add('ACTION ' + str(i), TURN_ON_LED(sn.read_led(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'map':
+        StateMachine.add('ACTION ' + str(i), LOAD_MAP(sn.read_map(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'set_inflation':
+        StateMachine.add('ACTION ' + str(i), SET_INFLATION(sn.read_inflation(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'set_max_vel':
+        StateMachine.add('ACTION ' + str(i), SET_MAX_VELOCITY(sn.read_max_velocity(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'ros_clean':
+        StateMachine.add('ACTION ' + str(i), ROS_CLEAN(), \
+          transitions={'succeeded':'succeeded','aborted':'aborted'})
       elif sn.read_task(i) == 'end':
-       StateMachine.add('ACTION ' + str(i), FINISH(), \
+        StateMachine.add('ACTION ' + str(i), FINISH(), \
           transitions={'succeeded':'succeeded','aborted':'aborted'})
       else :
-       StateMachine.add('ACTION ' + str(i), NONE(), \
+        StateMachine.add('ACTION ' + str(i), NONE(), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
 
   ## @brief デバッグ出力(smach_viewerで見れるようにする) @sa http://wiki.ros.org/smach_viewer

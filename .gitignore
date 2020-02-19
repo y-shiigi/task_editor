@@ -20,4 +20,4 @@ map.yaml
 /doc
 
 #vscode
-vscode/
+.vscode
