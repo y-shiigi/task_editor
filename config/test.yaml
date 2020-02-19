@@ -1,0 +1,35 @@
+- action: 
+    task: wait
+    time: 3000
+- action: 
+    task: led
+    led: 3,1
+- action: 
+    task: set_inflation
+    value: 0.1
+- action: 
+    task: set_max_vel
+    value: 0.2,0.2,0.4
+- action: 
+    task: vel_move
+    velocity: 0.1,0,0,3
+- action: 
+    task: wait
+    time: 1000
+- action: 
+    task: move
+    place: 0
+- action: 
+    task: led
+    led: 3,2
+- action: 
+    task: set_inflation
+    value: 0.3
+- action: 
+    task: set_max_vel
+    value: 0.5,0.5,0.8
+- action: 
+    task: move
+    place: 1
+- action: 
+    task: end
