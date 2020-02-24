@@ -77,6 +77,12 @@ start.py は主にステートマシンの作成と実行を担っている。
 <img src="https://user-images.githubusercontent.com/12426780/58219653-a9b67300-7d46-11e9-9c72-8a54869f62f5.png" width=80%>
 
 # 操作方法
+以下では１つのPCで作業する場合を記載する。
+複数台PC（遠隔操作含む）で作業する場合は、下記を参考にすること。
+　[ROS_環境設定](https://qiita.com/srs/items/7d4aeb5e44138f97c770)    
+　[jsk_common(ROS環境設定の簡易化)](https://jsk-common.readthedocs.io/en/latest/jsk_tools/cltools/setup_env_for_ros.html?highlight=rossetip)    
+　[byobu(仮想ターミナル)](https://linuxfan.info/terminal-with-byobu)    
+
 ## メインコントローラの起動    
 1. ros_controller用のlaunchを起動する    
 ``roslaunch task_editor robot_bringup.launch``
