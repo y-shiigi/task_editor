@@ -1,5 +1,3 @@
-# task_editor
-
 # 概要
 当文書では[SEED Platform Robots](https://www.seed-solutions.net/?q=seed_jp/node/73)を用いて、
 一連の作業（以下タスク）およびタスク群（以下シナリオ）を記述/実行するためのシステムSEED Grand Station(以下、SGS)について記述する。
@@ -20,65 +18,61 @@ SGSの構成としては下図の通りである。
 次節以降では``task_editor``について記述する。
 
 
-# task_editor ディレクトリ構成
+# 環境構築
+1. ROS、seed_smartactuator_skd、seed_r7_ros_pkgのインストール    
+[Github](https://github.com/seed-solutions/seed_r7_ros_pkg)のREADME.md通りにインストールし、UDEVルールの設定、動作確認まで行う  
+2. Realsenseドライバのインストール    
+下記は参考程度とし、必ず[公式HP](https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md)を確認してください
+```
+sudo apt-key adv --keyserver keys.gnupg.net --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || sudo apt-key adv --keyserver $ hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE 
+```
+Ubuntu16の場合    
+``
+sudo add-apt-repository "deb http://realsense-hw-public.s3.amazonaws.com/Debian/apt-repo xenial main" -u 
+``    
+Ubuntu18の場合    
+``
+sudo add-apt-repository "deb http://realsense-hw-public.s3.amazonaws.com/Debian/apt-repo bionic main" -u
+``
+```
+sudo apt-get install librealsense2-dkms librealsense2-utils librealsense2-dev librealsense2-dbg
+```
+Realsenseを接続し、 ``$ realsense-viewer``と入力して画像が表示されたら正常にインストールされている。
+3. realsense-rosのインストール    
+```
+sudo apt-get install ros-${ROS_DISTRO}-realsense2-* ros-${ROS_DISTRO}-ddynamic-reconfigure ros-${ROS_DISTRO}-rgbd-launch 
+```
+4. 各種ツールのインストール
+```
+sudo apt-get install emacs byobu openssh-server chrony expect setserial xterm
+sudo apt-get install ros-${ROS_DISTRO}-jsk-common ros-${ROS_DISTRO}-teleop-twist-joy ros-${ROS_DISTRO}-uvc-camera ros-${ROS_DISTRO}-jsk-visualization
+```
+5. task_editorのインストール
+```
+cd ~/ros/${ROS_DISTRO}/src
+git clone https://github.com/y-shiigi/task_editor
+cd ~/ros/${ROS_DISTRO}
+rosdep install -y -r --from-paths src --ignore-src
+catkin build task_editor
+```
+6. (**任意**)フォルダ名を英語にする
+```
+LANG=C xdg-user-dirs-gtk-update
+```
+7. (**任意**)電源ボタンを押したらシャットダウンさせる
+```
+sudo gedit /etc/acpi/events/powerbtn
+```
+上記``powerbtn``のファイルにて、下記変更を加える
+```
+#action=/etc/acpi/powerbtn.sh
+action=shutdown -h now
+```
 
-``task_editor``のディレクトリ構成は下図の通りである
-
-<div style="line-height: 1em">
-<pre>
-/task_editor
-├── CMakeLists.txt
-├── README.md
-├── TaskEditor-GUI              //GUIの実行ファイル
-├── TaskEditor-GUI.ini          //GUIの初期設定ファイル
-├── /config                     //設定データ
-│ ├── /maps
-│ │ ├── map.pgm               //地図データの画像ファイル
-│ │ └── map.yaml              //地図データの設定ファイル
-│ ├── ps3-holonomic.config.yaml//DUALSHOCK操作時の設定ファイル
-│ ├── scenario.yaml            //シナリオファイル
-│ └── waypoints.yaml           //waypointsファイル
-├── /launch                     //複数のノードを起動するためのlaunchファイル 
-│ ├── make_map.launch          //地図作成用
-│ ├── map_saver.launch         //地図保存用
-│ ├── robot_bringup.launch     //ロボットのシリアル通信起動用
-│ ├── simulation.launch        //実機無しでの検証用
-│ ├── static_map.launch        //地図利用（SLAM）用
-│ ├── view.launch              //Rvizの表示用
-│ └── wheel_bringup.launch     //URGの起動、DUALSHOCKによる走行のための設定用
-├── package.xml
-├── /scripts                    //シェルスクリプトおよびpythonスクリプト
-│ ├── bringup.sh               //GUIからのコマンド呼び出し
-│ ├── scp.exp                  //ロボットPC<->遠隔操作PCのファイル移行
-│ ├── ssh.exp                  //SSH接続設定
-│ └── start.py                 <span style="color: red; ">//シナリオ実行</span>
-├── /src                        //ソースファイル
-│ └── WaypointsEditor.cpp      //waypointsの設定/保存
-└── view.rviz                   //rvizの設定ファイル
-</pre>
-</div>
-
-
-# task_editor 仕様
-
-シナリオ作成〜実行までの一連の流れは下記のとおりである。  
-
-1. GUIを用いて作成されたシナリオは"保存ボタン"を押すと/configに.yamlファイルとして作成され、ロボット側のPCに転送される  
-2. GUIにて"シナリオ実行"ボタンを押すとロボット側のPCにて start.py が実行される。  
-start.py は主にステートマシンの作成と実行を担っている。  
-ステートマシンとしては[smach](http://wiki.ros.org/smach)を用いており、詳細は[O'REILYの書籍](https://www.oreilly.co.jp/books/9784873118093/)が参考となる。  
-3. ステートがムーバー移動の場合は、[アクション](http://wiki.ros.org/actionlib)という通信の仕組みで/move_baseとやり取りを行う。  
-ステートがリフター移動の場合は、[サービス](http://wiki.ros.org/Services)という通信の仕組みで/task_controllerとやり取りを行う。
-詳細は[工学社の書籍](https://www.kohgakusha.co.jp/support/ros_robot/index.html)が参考となる。
-
-
-シナリオ実行時のフローチャートは下図の通りである。なお、赤文字は実際の関数等を表している。
-
-<img src="https://user-images.githubusercontent.com/12426780/58219653-a9b67300-7d46-11e9-9c72-8a54869f62f5.png" width=80%>
 
 # 操作方法
 以下では１つのPCで作業する場合を記載する。
-複数台PC（遠隔操作含む）で作業する場合は、下記を参考にすること。
+複数台PC（遠隔操作含む）で作業する場合は、下記を参考にすること。    
 　[ROS_環境設定](https://qiita.com/srs/items/7d4aeb5e44138f97c770)    
 　[jsk_common(ROS環境設定の簡易化)](https://jsk-common.readthedocs.io/en/latest/jsk_tools/cltools/setup_env_for_ros.html?highlight=rossetip)    
 　[byobu(仮想ターミナル)](https://linuxfan.info/terminal-with-byobu)    
@@ -87,11 +81,13 @@ start.py は主にステートマシンの作成と実行を担っている。
 1. ros_controller用のlaunchを起動する    
 ``roslaunch task_editor robot_bringup.launch``
 2. GamePadの起動    
-[Elecom製GamePad](https://www.elecom.co.jp/products/JC-U4113SBK.html)の場合、上部スイッチをD側にスライドする    
-LB(L1)を押しながら下記スティック操作にてMoverを動かす。    
-　左ジョイスティック　：　前後、旋回    
-　右ジョイスティック　：　左右     
-LB(L1)の代わりにLT(L2)を押すと移動速度がUPする。    
+[Elecom製GamePad](https://www.elecom.co.jp/products/JC-U4113SBK.html)の場合、上部スイッチをD側にスライドし、LBボタンを押した状態で、SEED-Moverの車輪にサーボが入るまで待つ。    
+![image](https://user-images.githubusercontent.com/12426780/78964339-cdd49b80-7b34-11ea-8275-036b8071d5db.png)    
+LBボタンを押したままジョイスティックを操作し、SEED-Moverが動く事を確認する。動かし方は下記を参照のこと。なお、LBの代わりにLTボタンを押すと移動速度がアップする。     
+![image](https://user-images.githubusercontent.com/12426780/78964574-a3cfa900-7b35-11ea-8678-e59b2b37e37f.png)   
+・左ジョイスティック　：　前後、旋回    
+・右ジョイスティック　：　左右移動    
+SEED-Moverがガタガタと振動する場合、GamePadの連射モードがONになっている可能性があるため、[マニュアル](https://www.elecom.co.jp/support/manual/peripheral/gamepad/jc-u4113s/jc-u4113s_v2.pdf)を参考に連射モードをOFFにすること。
 
 ## 地図の作成と保存    
 1. 地図作成用のlaunchを起動する    
@@ -100,12 +96,13 @@ LB(L1)の代わりにLT(L2)を押すと移動速度がUPする。
 ``roslaunch task_editor view.launch``    
 3. GamePadで動かして地図が作成できたら保存する    
 ``roslaunch task_editor map_saver.launch``    
-![image](https://user-images.githubusercontent.com/12426780/75102914-ef3a0080-5636-11ea-8ecf-549d1c20d217.png)
+![image](https://user-images.githubusercontent.com/12426780/75102914-ef3a0080-5636-11ea-8ecf-549d1c20d217.png)    
+地図は``/task_editor/config/maps"に保存される
 
 ## 保存した地図を利用した自律移動    
 1. 地図利用のlaunchを起動する    
 ``roslaunch task_editor static_map.launch``    
-**``robot_bringup.launch``は再起動した方が良い**
+**このとき、``robot_bringup.launch``は再起動した方が良い**
 2. 初期位置合わせをする    
 RViz上の“2D Pose Estimate”を選択し、画面上をクリック＆ドラッグ＆ドロップして現在位置を設定する。この時、保存した地図とLiDARの点がおおよそ重なるまで繰り返すこと。     
 ![image](https://user-images.githubusercontent.com/12426780/75102966-8901ad80-5637-11ea-9a66-cefb3ef4d624.png)
@@ -114,47 +111,39 @@ RViz上の“2D Nav Goal”ボタンを選択し、画面上をクリック＆�
 ![image](https://user-images.githubusercontent.com/12426780/75102981-bcdcd300-5637-11ea-9102-728a3a83f124.png)    
 
 ## シナリオの作成と実行方法    
-1. waypointsの登録 
+1. waypointsの登録   
 GamePadを使用して、下記ボタンにて登録/削除を行う。    
 　登録	: “start”ボタン     
-　参照	: “select”ボタン    
+　参照	: “back”ボタン    
 　削除	: “LB(L1) + LT(L2) + RB(R1) + RT(R2)”同時押し    
 ボタン名は[ElecomのHP](https://www.elecom.co.jp/products/JC-U4113SBK.html)を参照のこと    
 ![image](https://user-images.githubusercontent.com/12426780/75103036-923f4a00-5638-11ea-9744-29be235197e0.png)    
 2. シナリオの編集    
-``emacs ~/ros/kinetic/src/task_editor/config/scenario.yaml``    
-**任意のテキストエディタで問題ない**    
-**各タスク内容は[API一覧](#API)参照のこと**
+``emacs ~/ros/${ROS_DISTRO}/src/task_editor/config/scenario.yaml``    
+**編集は任意のテキストエディタで問題ない**    
+**各タスク内容は[API一覧](https://github.com/y-shiigi/task_editor/wiki/API%E4%B8%80%E8%A6%A7)参照のこと**
+
 3. シナリオの実行    
 ``rosrun task_editor start.py`` : scenario.yamlが実行される。    
 もし別のyamlファイルを実行したい場合、下記のようにすること。    
 ``rosrun task_editor start.py test.yaml``   : test.yamlが実行される。
 
-# <a name = "API"> API一覧
-
-| タスク名 | 引数名 | 引数の内容 | 引数の例 | 備考 |
-| ------------- | ------------- | ------------- | ------------- | ------------- |
-| move | place | waypoints番号 | place : 0 | waypointsへ自律移動する |
-| via | place | waypoints番号 | place : 0 | waypoints付近まで自律移動する |
-| vel_move | velocity | x速度[m/sec],y速度[m/sec],theta速度[rad/sec],時間[sec] | velocity: 0.1,0,0,3 | 指定速度で指定時間だけ移動する|
-| lifter | position | base_linkからのリフターx位置[m],z位置[m],速度係数 | position: 0.0,0.5,1.0 | SEED-Lifterを移動させる |
-| wait | time | 時間[msec] | wait : 1000 | 指定時間待つ。-1を入力すると rosparam``/task_editor/wait_task``が``False``になるまで待つ |
-| loop | jump | タスク番号, ループ回数 | jump : 1,-1 | 別タスクにジャンプ/ループする。ループ回数を-1にすると無限ループする |
-| led | led | 対象のSendNo, スクリプト番号 | led : 3,1 | 台車LEDを制御する。左の例だと右前LEDのスクリプト１を実行する |
-| set_inflation | value | inflationサイズ[m] | value : 0.2 | costmapのinflationを設定する |
-| set_max_vel | value | x速度[m/sec],y速度[m/sec],theta速度[rad/sec] | value : 0.5,0.5,0.8 | 自律移動時の最大速度を設定する |
-
-
-
-
-# クラスドキュメントの作成方法
-
-クラスドキュメントは[rosdoc_liteパッケージ](http://wiki.ros.org/rosdoc_lite)を用いて作成されている。
-ローカルPCにて最新版に更新する場合は下記手順を実行のこと。
+## Realsenseの利用
+### ARマーカー検出として利用したい場合    
 ```
-sudo apt-get install ros-kinetic-rosdoc-lite 
-roscd task_editor
-rosdoc_lite .
-```
-/task_editor直下に/doc/htmlが作成されるので、Firefoxなどで``index.html``を開けば良い。
+roslaunch task_editor ar_track_realsense.launch
+```    
+カメラ前方にARマーカーをかざし、Rviz上にTF(``ar_marker_*``)が出力されることを確認する。また、使用するRealsenseやマーカーによって、``ar_track_realsense.launch``の下記パラメータを変更する。  
+* serial_no_camera : realsenseの固有シリアル番号    
+→``realsense-viewer``で確認できます
+* marker_size　：　ARマーカーの1辺の長さ[cm]    
 
+その他設定は[wiki](http://wiki.ros.org/ar_track_alvar)を参照のこと
+
+### 障害物検知として使用したい場合
+```
+roslaunch task_editor realsense_laser.launch
+```
+Rviz上でSEED-Mover後方に黄色レーザーが出力される。出力されない場合、RealsenseのUSBを抜き差しするか、PCを再起動すること。
+
+**USBの通信帯域の問題で、現状は2台同時に起動できません!**
