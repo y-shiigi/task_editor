@@ -7,6 +7,7 @@ password=$2
 command=$3
 
 if [ ${command} = "controller" ]; then 
+  killall gnome-terminal-server;
   gnome-terminal --zoom=0.5 --tab -e 'bash -c "expect ssh.exp '${ip_address}' '${password}' \"export ROS_IP='${ip_address}'\" \"roslaunch task_editor robot_bringup.launch;exit\" "'
 
 elif [ ${command} = "make_map" ]; then 
