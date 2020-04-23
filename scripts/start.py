@@ -51,6 +51,8 @@ class NaviAction:
     self.vel_pub_ = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
     self.vel_ = Twist()
 
+    self.tf_listener_ = tf.TransformListener()
+
   ## @brief ゴールポジションの設定と移動の開始
   # @param _number waypointsの番号(0以上の数値）
   # @return ゴールに到着したか否か（succeeded or aborted）
@@ -100,20 +102,20 @@ class NaviAction:
 
     rospy.loginfo('Sending goal')
     self.ac.send_goal(self.goal)
-    listener = tf.TransformListener()
 
-    timeout = time.time() + 8 #[sec]
+    timeout = time.time() + 60 #[sec]
 
     while True:
       try:
-        (position, quaternion) = listener.lookupTransform('map', 'base_link', rospy.Time(0) )
+        (position, quaternion) = self.tf_listener_.lookupTransform('map', 'base_link', rospy.Time(0) )
       except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
         continue
       
+      distance = math.sqrt((position[0]-self.goal.target_pose.pose.position.x)**2 \
+        + (position[1]-self.goal.target_pose.pose.position.y)**2 )
+
       #ゴールから0.5[m]以内なら、succeededを返す
-      if(math.sqrt((position[0]-self.goal.target_pose.pose.position.x)**2 
-        + (position[1]-self.goal.target_pose.pose.position.y)**2 ) <= 0.5):
-        
+      if(distance <= 0.5):
         rospy.loginfo("Succeed")
         return 'succeeded'
 
@@ -141,6 +143,26 @@ class NaviAction:
     self.vel_pub_.publish(self.vel_)
 
     return 'succeeded'
+
+  def set_pose(self,_number):
+    rev = dict(self.config[_number]) #List to Dictionary
+
+    self.x_ = rev['pose']['position']['x']
+    self.y_ = rev['pose']['position']['y']
+    (self.roll_,self.pitch_,self.yaw_) = tf.transformations.euler_from_quaternion(
+      (rev['pose']['orientation']['x'], rev['pose']['orientation']['y'], 
+       rev['pose']['orientation']['z'], rev['pose']['orientation']['w']))
+    
+    try:
+      rospy.loginfo("set initialpose at %s,%s,%s" % (self.x_,self.y_,self.yaw_))
+      set_initialpose = rospy.ServiceProxy('set_initialpose', SetInitialPose)
+      res = set_initialpose(self.x_, self.y_, self.yaw_)
+      rospy.sleep(1)
+      return 'succeeded'
+
+    except rospy.ServiceException, e:
+      print "Service call failed: %s"%e
+      return 'aborted'
         
   ## @brief move_baseの終了
   def shutdown(self):
@@ -177,7 +199,8 @@ class GO_TO_VIA_POINT(State):
   def __init__(self,_place):
     State.__init__(self, outcomes=['succeeded','aborted'])
     ## @brief waypointsの番号
-    self.place_ = _place
+    place_string = _place.split(',')
+    self.place_ = [int(s) for s in place_string]
 
   ## @brief 遷移実行
   # @param userdata 前のステートから引き継がれた変数。今回は使用しない
@@ -186,7 +209,12 @@ class GO_TO_VIA_POINT(State):
     #ta.set_led(10,5)
     #ta.set_led(11,5)
     print 'Going to Place'+str(self.place_)
-    if(na.set_via_point(self.place_) == 'succeeded'):return 'succeeded'
+    place_counter = self.place_[0]
+    while(place_counter < self.place_[1]):
+      na.set_via_point(place_counter)
+      place_counter += 1
+
+    if(na.set_via_point(self.place_[1]) == 'succeeded'):return 'succeeded'
     else: return 'aborted'
 
 class VELOCITY_MOVE(State):
@@ -219,7 +247,7 @@ class MoveitCommand:
     self.group.set_pose_reference_frame("base_link")
     self.group.set_end_effector_link("body_link")
 
-    #self.tf_listener = tf.TransformListener()
+    self.robot_model = rospy.get_param("/seed_r7_ros_controller/robot_model_plugin")
 
   ## @brief lifterのIK算出と動作
   # @param _x リフター上部のx座標[m]
@@ -228,9 +256,11 @@ class MoveitCommand:
   # @return IKが算出できて、移動が完了したか否か（succeeded or aborted）
   def set_lifter_position(self, _x, _z, _vel=1.0):
 
-    distance_body_to_lifter_top = 1.065 - 0.92 #typeF
-    #distance_body_to_lifter_top = 0.9945 - 0.8575 #typeG
-    
+    if("typef" in self.robot_model or "TypeF" in self.robot_model):
+      distance_body_to_lifter_top = 1.065 - 0.92
+    elif("typeg" in self.robot_model or "TypeG" in self.robot_model):
+      distance_body_to_lifter_top = 0.994 - 0.857
+
     target_pose = Pose()
 
     target_pose.orientation.x = 0
@@ -458,7 +488,7 @@ class LOAD_MAP(State):
     rospy.loginfo("load map")
 
     cmd = 'export DISPLAY=:0.0; \
-      gnome-terminal --tab -e \'bash -c \"rosrun map_server map_server {} __name:=map_localization_server \"\' \
+      gnome-terminal --zoom=0.2 --geometry=+0+480 --tab -e \'bash -c \"rosrun map_server map_server {} __name:=map_localization_server \"\' \
       --tab -e \'bash -c \"rosrun map_server map_server {} __name:=map_planning_server map:=map_keepout \"\' \
       ;export DISPLAY=:10.0'
     subprocess.call(cmd.format(self.map_path,self.map_path), shell=True)
@@ -500,6 +530,23 @@ class SET_MAX_VELOCITY(State):
     
     return 'succeeded'
 
+class SET_INITIAL_POSE(State):
+  def __init__(self, _pose):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    pose_string = _pose.split(',')
+    self.pose_ = [float(s) for s in pose_string]
+
+  def execute(self, userdata):
+    try:
+      rospy.loginfo("set initialpose")
+      set_initialpose = rospy.ServiceProxy('set_initialpose', SetInitialPose)
+      res = set_initialpose(self.pose_[0], self.pose_[1], self.pose_[2])
+      rospy.sleep(1)
+      return 'succeeded'
+
+    except rospy.ServiceException, e:
+      print "Service call failed: %s"%e
+      return 'aborted'
   
 ############################################
 ## @brief シナリオの読込クラス
@@ -535,9 +582,12 @@ class Scenario:
     rev = dict(self.scenario[_number])
     return rev['action']['place']
 
+  def read_via_place(self, _number):
+    rev = dict(self.scenario[_number])
+    return rev['action']['place']
+
   def read_velocity(self, _number):
     rev = dict(self.scenario[_number])
-
     return rev['action']['velocity']
   
   ## @brief リフターの姿勢読込
@@ -593,6 +643,9 @@ class Scenario:
     rev = dict(self.scenario[_number])
     return rev['action']['value']
 
+  def read_initial_pose(self, _number):
+    rev = dict(self.scenario[_number])
+    return rev['action']['pose']
   
 #==================================
 #==================================
@@ -620,7 +673,10 @@ if __name__ == '__main__':
         StateMachine.add('ACTION ' + str(i), GO_TO_PLACE(sn.read_place(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'via':
-        StateMachine.add('ACTION ' + str(i), GO_TO_VIA_POINT(sn.read_place(i)), \
+        StateMachine.add('ACTION ' + str(i), GO_TO_VIA_POINT(sn.read_via_place(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'set_pose':
+        StateMachine.add('ACTION ' + str(i), SET_POSE(sn.read_place(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'vel_move':
         StateMachine.add('ACTION ' + str(i), VELOCITY_MOVE(sn.read_velocity(i)), \
@@ -648,6 +704,9 @@ if __name__ == '__main__':
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'set_max_vel':
         StateMachine.add('ACTION ' + str(i), SET_MAX_VELOCITY(sn.read_max_velocity(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'set_initial_pose':
+        StateMachine.add('ACTION ' + str(i), SET_INITIAL_POSE(sn.read_initial_pose(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'ros_clean':
         StateMachine.add('ACTION ' + str(i), ROS_CLEAN(), \

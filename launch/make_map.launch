@@ -4,5 +4,4 @@
     <arg name="RUN_BRINGUP" default="false" />
   </include>
 
-  <node name="waypoints_editor" pkg="task_editor" type="waypoints_editor" />
 </launch>
