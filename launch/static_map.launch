@@ -9,6 +9,4 @@
     <arg name="map_localization_file" value="$(find task_editor)/config/maps/$(arg keepout_map_name).yaml"/>
   </include>
 
-  <node name="waypoints_editor" pkg="task_editor" type="waypoints_editor" />
-
 </launch>
