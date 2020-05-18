@@ -3,6 +3,7 @@
 import sys
 import time
 import rospy
+import copy
 import subprocess
 ##-- for smach
 from smach import State,StateMachine
@@ -418,20 +419,35 @@ class LOOP(State):
   def __init__(self,_count):
     State.__init__(self, outcomes=['succeeded','aborted'])
     ## @brief ループ回数。負の値だと、無限ループ
-    self.count_ = int(_count)
+    sn.loop_count_array[_count[0]] = int(_count[1])
+    self.count_array_ = copy.copy(sn.loop_count_array)
+
+    self.count_  = _count
+
+    print "init count is %s \t" % sn.loop_count_array
 
   ## @brief 遷移実行
   # @param userdata 前のステートから引き継がれた変数。今回は使用しない
   # @return ループがある場合はsucceeded、無い場合はaborted
   def execute(self, userdata):
-    self.count_ -= 1
-    if(self.count_ > 0):
-      print 'count ' + str(self.count_) + ' times'
+    count = self.count_array_[self.count_[0]]
+    #print "count is %s \t" % count
+    #print "count_array_ is %s \t" % self.count_array_
+    #print "loop_count_array_ is %s \t" % sn.loop_count_array
+    count -= 1
+
+    if(count > 0):
+      print 'count ' + str(count) + ' times'
+      self.count_array_[self.count_[0]] = count
       return 'succeeded'
-    elif(self.count_ < 0):
+    elif(count < -1):
       print 'infinity loop'
       return 'succeeded'
     else:
+      print 'reset count'
+      self.count_array_[self.count_[0]] = sn.loop_count_array[self.count_[0]]
+      #print "count_array_ is %s \t" % self.count_array_
+      #print "loop_count_array_ is %s \t" % sn.loop_count_array
       return 'aborted'
 
 ##########################################
@@ -564,6 +580,7 @@ class Scenario:
     self.scenario = yaml.load(file(path + "/config/" + file_name))
     ## @brief タスクの数
     self.scenario_size = len(self.scenario)
+    self.loop_count_array = self.scenario_size * [0]
 
     rospy.set_param('/task_editor/wait_task',False)
     rospy.set_param('/task_editor/jump',1)
@@ -621,7 +638,7 @@ class Scenario:
   # @return ループ回数
   def read_count(self, _number):
     rev = dict(self.scenario[_number])
-    return rev['action']['jump'].split(',')[1]
+    return [_number,rev['action']['jump'].split(',')[1]]
 
   def read_marker(self, _number):
     rev = dict(self.scenario[_number])
