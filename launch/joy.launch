@@ -21,7 +21,6 @@
   <node pkg="task_editor" type="joy_smoother.py" name="joy_smoother" if="$(arg JOY_SMOOTHER)">
     <remap from="joy_in" to="$(arg joy_pad)/joy" />
     <remap from="joy_out" to="$(arg joy_pad)/joy_smoother" />
-    <rosparam command="load" file="$(find task_editor)/config/$(arg joy_pad)_to_ps3.yaml"/>
   </node>
 
   <!-- remap -->
