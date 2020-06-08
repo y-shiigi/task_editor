@@ -5,8 +5,8 @@
   
   <include file="$(find seed_r7_navigation)/launch/wheel_with_static_map.launch">
     <arg name="RUN_BRINGUP" default="false" />
-    <arg name="map_keepout_file" value="$(find task_editor)/config/maps/$(arg localization_map_name).yaml"/>
-    <arg name="map_localization_file" value="$(find task_editor)/config/maps/$(arg keepout_map_name).yaml"/>
+    <arg name="map_localization_file" value="$(find task_editor)/config/maps/$(arg localization_map_name).yaml"/>
+    <arg name="map_keepout_file" value="$(find task_editor)/config/maps/$(arg keepout_map_name).yaml"/>
   </include>
 
 </launch>

@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
-
   <arg name="robot_model" default="typef"/>
+
+  <arg name="localization_map_name" default="map"/>
+  <arg name="keepout_map_name" default="$(arg localization_map_name)" />
 
   <include file="$(find seed_r7_bringup)/launch/seed_r7_bringup.launch">
     <arg name="robot_model" value="$(arg robot_model)"/>
@@ -14,8 +16,8 @@
   </include>
 
   <include file="$(find seed_r7_navigation)/launch/wheel_with_dummy.launch">
-    <arg name="map_keepout_file" value="$(find task_editor)/config/maps/map.yaml"/>
-    <arg name="map_localization_file" value="$(find task_editor)/config/maps/map.yaml"/>
+    <arg name="map_localization_file" value="$(find task_editor)/config/maps/$(arg localization_map_name).yaml"/>
+    <arg name="map_keepout_file" value="$(find task_editor)/config/maps/$(arg keepout_map_name).yaml"/>
   </include>
 
   <node name="task_controller" pkg="task_editor" type="task_controller" output="screen" />
