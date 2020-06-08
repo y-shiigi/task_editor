@@ -218,6 +218,22 @@ class GO_TO_VIA_POINT(State):
     if(na.set_via_point(self.place_[1]) == 'succeeded'):return 'succeeded'
     else: return 'aborted'
 
+class SET_POSE(State):
+  ## @brief コンストラクタ。ステートの振る舞い(succeeded or aborted)定義
+  # @param _place  waypointsの番号
+  def __init__(self,_place):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    ## @brief waypointsの番号
+    self.place_ = _place
+
+  ## @brief 遷移実行
+  # @param userdata 前のステートから引き継がれた変数。今回は使用しない
+  # @return initailposeを設定できたか否か（succeeded or aborted）
+  def execute(self, userdata):
+    print 'set initial pose at'+str(self.place_)
+    if(na.set_pose(self.place_) == 'succeeded'):return 'succeeded'
+    else: return 'aborted'
+
 class VELOCITY_MOVE(State):
   def __init__(self,_velocity):
     State.__init__(self, outcomes=['succeeded','aborted'])
