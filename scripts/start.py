@@ -15,7 +15,7 @@ from actionlib_msgs.msg import *
 from geometry_msgs.msg import *
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import yaml
-import tf
+import tf2_ros
 import math
 ##-- for find pkg
 import rospkg
@@ -111,7 +111,7 @@ class NaviAction:
         (position, quaternion) = self.tf_listener_.lookupTransform('map', 'base_link', rospy.Time(0) )
       except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
         continue
-      
+
       distance = math.sqrt((position[0]-self.goal.target_pose.pose.position.x)**2 \
         + (position[1]-self.goal.target_pose.pose.position.y)**2 )
 
@@ -126,7 +126,97 @@ class NaviAction:
 
       else:
         pass
-        
+
+  def set_rotatetional_orbit(self,_number):
+    tf_now = geometry_msgs.msg.TransformStamped()
+    tf_goal = geometry_msgs.msg.TransformStamped()
+    br = tf2_ros.StaticTransformBroadcaster()
+
+    rate = rospy.Rate(1.0)
+    counter = 0
+
+    rospy.on_shutdown(self.shutdown)
+
+    rev = dict(self.config[_number]) #List to Dictionary
+
+    tf_goal.header.stamp = rospy.Time.now()
+    tf_goal.header.frame_id = 'map'
+    tf_goal.child_frame_id = 'goal'
+    tf_goal.transform.translation.x = rev['pose']['position']['x']
+    tf_goal.transform.translation.y = rev['pose']['position']['y']
+    tf_goal.transform.translation.z = rev['pose']['position']['z']
+    tf_goal.transform.rotation.x = rev['pose']['orientation']['x']
+    tf_goal.transform.rotation.y = rev['pose']['orientation']['y']
+    tf_goal.transform.rotation.z = rev['pose']['orientation']['z']
+    tf_goal.transform.rotation.w = rev['pose']['orientation']['w']
+    br.sendTransform(tf_goal)
+
+    now_pos = 1*[0]
+    goal_pos = 1*[0]
+
+    while True:
+      try:
+        (now_pos, now_q) = self.tf_listener_.lookupTransform('map', 'base_link', rospy.Time(0) )
+      except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+        rospy.logwarn("can't get base_link TF")
+
+      try:
+        (goal_pos, goal_q) = self.tf_listener_.lookupTransform('map', 'goal', rospy.Time(0) )
+      except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+        rospy.logwarn("can't get goal TF")
+
+      if(len(now_pos) > 1 and len(goal_pos) > 1 ):
+        break
+
+    now_euler = tf.transformations.euler_from_quaternion((now_q[0],now_q[1],now_q[2],now_q[3]))
+    goal_euler = tf.transformations.euler_from_quaternion((goal_q[0],goal_q[1],goal_q[2],goal_q[3]))
+
+    ratio = 100
+
+    for i in range(1,1 + ratio):
+      self.goal.target_pose.header.frame_id = 'map'
+      self.goal.target_pose.header.stamp = rospy.Time.now()
+      self.goal.target_pose.pose.position.x = now_pos[0] + ((goal_pos[0] - now_pos[0]) / ratio) * i
+      self.goal.target_pose.pose.position.y = now_pos[1] + ((goal_pos[1] - now_pos[1]) / ratio) * i
+      self.goal.target_pose.pose.position.z = now_pos[2] + ((goal_pos[2] - now_pos[2]) / ratio) * i
+
+      q = tf.transformations.quaternion_from_euler(0,0,now_euler[2] + ((goal_euler[2] -now_euler[2]) / ratio) * i + 6.28/ratio * i)
+      self.goal.target_pose.pose.orientation.x = q[0]
+      self.goal.target_pose.pose.orientation.y = q[1]
+      self.goal.target_pose.pose.orientation.z = q[2]
+      self.goal.target_pose.pose.orientation.w = q[3]
+
+      rospy.loginfo('Sending goal')
+      self.ac.send_goal(self.goal)
+      timeout = time.time() + 60 #[sec]
+
+      rospy.Rate(5).sleep()
+
+      '''
+      while True:
+        try:
+          (position, quaternion) = self.tf_listener_.lookupTransform('map', 'base_link', rospy.Time(0) )
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+          continue
+
+        distance = math.sqrt((position[0]-self.goal.target_pose.pose.position.x)**2 \
+          + (position[1]-self.goal.target_pose.pose.position.y)**2 )
+
+        #ゴールから0.5[m]以内なら、succeededを返す
+        if(distance <= 0.1):
+          rospy.loginfo("Succeed")
+          return 'succeeded'
+
+        elif (time.time() > timeout):
+          rospy.loginfo("Timeout")
+          return 'aborted'
+
+        else:
+          pass
+      '''
+
+    return 'succeeded'
+
   def set_velocity(self,_x,_y,_theta,_time):
     self.vel_.linear.x = _x
     self.vel_.linear.y = _y
@@ -218,6 +308,22 @@ class GO_TO_VIA_POINT(State):
     if(na.set_via_point(self.place_[1]) == 'succeeded'):return 'succeeded'
     else: return 'aborted'
 
+class ROTATIONAL_MOVE(State):
+  ## @brief コンストラクタ。ステートの振る舞い(succeeded or aborted)定義
+  # @param _place  waypointsの番号
+  def __init__(self,_place):
+    State.__init__(self, outcomes=['succeeded','aborted'])
+    ## @brief waypointsの番号
+    self.place_ = _place
+
+  ## @brief 遷移実行
+  # @param userdata 前のステートから引き継がれた変数。今回は使用しない
+  # @return ゴールに到着したか否か（succeeded or aborted）
+  def execute(self, userdata):
+    print 'Going to Place'+str(self.place_) + 'with rotating'
+    if(na.set_rotatetional_orbit(self.place_) == 'succeeded'):return 'succeeded'
+    else: return 'aborted'
+
 class VELOCITY_MOVE(State):
   def __init__(self,_velocity):
     State.__init__(self, outcomes=['succeeded','aborted'])
@@ -293,7 +399,7 @@ class MoveitCommand:
       return 'succeeded'
 
 #---------------------------------
-## @brief ”リフター移動”ステート 
+## @brief ”リフター移動”ステート
 # @param State smachのステートクラスを継承
 class LIFTER(State):
   ## @brief コンストラクタ。ステートの振る舞い(succeeded or aborted)定義
@@ -315,8 +421,6 @@ class LIFTER(State):
     if(mc.set_lifter_position(self.position_[0],self.position_[1],self.position_[2]) == 'succeeded'):return 'succeeded'
     else: return 'aborted'
 
-
-    
 ###########################################
 ## @brief ナビゲーション以外のタスク実行クラス
 # task_controllerサーバー( TaskController.hh )とサービスコールで通信を行う
@@ -326,7 +430,7 @@ class TaskAction:
     rospy.loginfo('waiting task_controller service')
     rospy.wait_for_service('task_controller')
     rospy.loginfo('waiting led_control service')
-    rospy.wait_for_service('led_control')    
+    rospy.wait_for_service('led_control')
 
   ## @brief タスクの設定と実行を行う。task_controllerクライアントを作成し、サーバーへサービスを呼び出す。@n
   # 型の定義は TaskController.srv を参照のこと
@@ -691,6 +795,9 @@ if __name__ == '__main__':
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'via':
         StateMachine.add('ACTION ' + str(i), GO_TO_VIA_POINT(sn.read_via_place(i)), \
+          transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
+      elif sn.read_task(i) == 'rot_move':
+        StateMachine.add('ACTION ' + str(i), ROTATIONAL_MOVE(sn.read_place(i)), \
           transitions={'succeeded':'ACTION '+ str(i+1),'aborted':'ACTION '+str(i+1)})
       elif sn.read_task(i) == 'set_pose':
         StateMachine.add('ACTION ' + str(i), SET_POSE(sn.read_place(i)), \
