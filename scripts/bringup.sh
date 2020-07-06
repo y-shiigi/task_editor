@@ -1,5 +1,6 @@
 #!/bin/bash
-source /home/seed/ros/kinetic/devel/setup.bash
+ros_dir=/home/seed/ros/kinetic
+source ${ros_dir}/devel/setup.bash
 roscd task_editor/scripts
 
 ip_address=$1
@@ -42,8 +43,7 @@ elif [ ${command} = "rviz" ]; then
   gnome-terminal --zoom=0.5 --tab -e 'bash -c "export ROS_MASTER_URI=http://'${ip_address}':11311;export ROS_IP='${local_ip}';roslaunch --wait task_editor view.launch;exit"'
 
 elif [ ${command} = "ps3" ]; then 
-  expect ssh.exp ${ip_address} ${password} "export DISPLAY=:0.0; gnome-terminal --tab -e 'bash -c \"expect -c \\\" spawn env LANG=C sudo sixad --start ; expect password ; send seed\n ; interact ;exec /bin/bash \\\" \" ' "
-#gnome-terminal --tab -e 'bash -c "expect -c \"spawn env LANG=C sudo sixad --start ; expect password ; send seed\n ; interact \" "' 
+  expect ssh.exp ${ip_address} ${password} "export DISPLAY=:0.0; gnome-terminal --tab -e 'bash -c \"expect -c \\\" spawn env LANG=C sudo sixad --start ; expect password ; send ${password}\n ; interact ;exec /bin/bash \\\" \" ' "
 
 elif [ ${command} = "operation" ]; then 
   local_ip=$4
@@ -52,12 +52,13 @@ elif [ ${command} = "operation" ]; then
   map_name=$7
   if [ ${action} = "start" ]; then 
     gnome-terminal --zoom=0.5 \
+      --tab -e 'bash -c "expect ssh.exp '${ip_address}' '${password}' \"rosnode kill --all;killall -9 roscore;killall -9 rosmaster;exit\" "';
+    gnome-terminal --zoom=0.5 \
       --tab -e 'bash -c "expect ssh.exp '${ip_address}' '${password}' \"export ROS_IP='${ip_address}'\" \"roslaunch task_editor robot_bringup.launch;exit\" "' \
       --tab -e 'bash -c "expect ssh.exp '${ip_address}' '${password}' \"sleep 1;export ROS_IP='${ip_address}'\" \"roslaunch --wait  task_editor static_map.launch  localization_map_name:='${map_name}';exit\" "' \
       --tab -e 'bash -c "expect ssh.exp '${ip_address}' '${password}' \"sleep 1;export ROS_IP='${ip_address}'\" \"roslaunch task_editor --wait realsense_laser.launch;exit\" "' \
       --tab -e 'bash -c "export ROS_MASTER_URI=http://'${ip_address}':11311;export ROS_IP='${local_ip}';sleep 5;roslaunch --wait task_editor view.launch;exit"' \
       --tab -e 'bash -c "expect ssh.exp '${ip_address}' '${password}' \"export ROS_IP='${ip_address}'\" \"sleep 5;rosrun task_editor start.py '${scenario_name}';exit\" "'
-    
 
   elif [ ${action} = "previous" ]; then 
     export ROS_MASTER_URI=http://${ip_address}:11311;export ROS_IP=${local_ip};
@@ -74,17 +75,18 @@ elif [ ${command} = "operation" ]; then
     export ROS_MASTER_URI=http://${ip_address}:11311;export ROS_IP=${local_ip};
     rosrun task_editor go.py $6
   elif [ ${action} = "stop" ]; then 
-    killall gnome-terminal-server
+    killall gnome-terminal-server&
+    expect ssh.exp ${ip_address} ${password} "export DISPLAY=:0.0;killall gnome-terminal-server; bash '${ros_dir}'/src/task_editor/scripts/teleop_mover.sh"
   fi
 
 elif [ $1 = "kill" ]; then
   killall gnome-terminal-server
 
 elif [ ${command} = "shutdown" ]; then 
-  expect ssh.exp ${ip_address} ${password} "expect -c \" spawn env LANG=C sudo shutdown -h now; expect password; send seed\n; interact \" "
+  expect ssh.exp ${ip_address} ${password} "expect -c \" spawn env LANG=C sudo shutdown -h now; expect password; send ${password}\n; interact \" "
 
 elif [ ${command} = "reboot" ]; then 
-  expect ssh.exp ${ip_address} ${password} "expect -c \" spawn env LANG=C sudo reboot; expect password; send seed\n; interact \" "
+  expect ssh.exp ${ip_address} ${password} "expect -c \" spawn env LANG=C sudo reboot; expect password; send ${password}\n; interact \" "
 
 elif [ ${command} = "save_scenario" ]; then
   file_name=$4

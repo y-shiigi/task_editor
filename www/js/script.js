@@ -1,6 +1,5 @@
 var ros = new ROSLIB.Ros({
-  // url : 'ws://localhost:9090'
-  url : 'ws://192.168.100.101:9090'
+  url : 'ws://' + location.hostname + ':9090'
 });
 
 ros.on('connection', function () {
@@ -78,8 +77,8 @@ function createNavigation() {
   // Create the main viewer.
   var viewer = new ROS2D.Viewer({
     divID : 'nav',
-    width : 300,
-    height : 300
+    width : 600,
+    height : 600
   });
 
   // Setup the nav client.
@@ -120,4 +119,9 @@ var runRobot = function() {
   // // import { execSync } from 'child_process';  // replace ^ if using ES modules
    const output = execSync('ls', { encoding: 'utf-8' });  // the default is 'buffer'
    console.log('Output was:\n', output);
+}
+
+//camera stream
+function createCamera() {
+  document.getElementById("camstream").data = "http://" + location.hostname + ':8080/stream?topic=/image_raw&type=mjpeg&quality=10';
 }
