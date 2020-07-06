@@ -136,6 +136,7 @@ a:hover { color: #1285d0; }
   margin-top: 0;
   border-bottom: 1px solid #CCCCCC;
 }
+
 /* おしらせ */
 #pageBodySub .newsList ul{
   list-style: none;
@@ -491,7 +492,7 @@ figure {
 .rosGUI article{
   width: 300px;
   float: left;
-  margin-left: 40px;
+  margin-left: 350px;
   
 }
 
